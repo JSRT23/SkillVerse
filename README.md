@@ -56,12 +56,14 @@ Todo corre solo en tu proyecto de Supabase:
 
 | Tarea | Frecuencia | Qué hace |
 |---|---|---|
-| Descubrir | cada 2 min | Busca repos en GitHub por temas (`agent-skills`, `claude-skills`, …) en rangos de estrellas y los pone en cola |
-| Rastrear (`crawl-skills`) | cada 20 s | Lista los archivos del repo vía jsDelivr, lee cada `SKILL.md` y guarda las skills |
-| Clasificar (`classify-skills`) | cada 5 s | Calcula el embedding de cada skill y la asigna a la subcategoría más parecida |
+| Descubrir | cada 20 min | Busca repos en GitHub por temas (`agent-skills`, `claude-skills`, …) en rangos de estrellas y los pone en cola |
+| Rastrear (`crawl-skills`) | cada 2 min | Lista los archivos del repo vía jsDelivr, lee cada `SKILL.md` y guarda las skills |
+| Clasificar (`classify-skills`) | cada 30 s | Calcula el embedding de cada skill y la asigna a la subcategoría más parecida |
+| Cachés del catálogo | cada 10 min | Recalcula conteos, populares, recién llegadas y estado (`private.refresh_catalog()`) |
+| Duplicados | cada 30 min | Marca skills repetidas entre repositorios (`private.mark_duplicates_all()`) |
 | Buscar (`search`) | a pedido | Búsqueda híbrida: texto + significado, con glosario español→inglés |
 
-Cada tarea solo se ejecuta si hay trabajo pendiente, para no gastar ejecuciones del plan gratuito.
+Cada tarea solo se ejecuta si hay trabajo pendiente. El rastreo y el descubrimiento se detienen solos al llegar a unas 30.000 skills, para no pasar los límites de disco y CPU del plan gratuito de Supabase. Las visitas leen conteos y listados de portada desde cachés, así que no recorren la tabla de skills.
 
 ### Agregar repositorios o temas
 
