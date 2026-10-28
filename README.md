@@ -7,10 +7,11 @@ Su mascota es **Ocho**, un pulpo con un tentáculo para cada categoría.
 ## Arrancar con Docker
 
 ```bash
+cp .env.example .env   # luego pon tus valores de Supabase en .env
 docker compose up --build
 ```
 
-Abre http://localhost:8080. No hace falta configurar nada: las claves públicas de Supabase vienen por defecto. Para otro puerto: `PORT=3000 docker compose up --build`.
+Abre http://localhost:8080. Docker lee la URL y la clave pública de Supabase desde `.env`, que no se sube al repositorio. Para otro puerto, cambia `PORT` en `.env`.
 
 ## Desarrollo local
 
@@ -44,7 +45,7 @@ npm run dev
 
 ## Backend (Supabase)
 
-Proyecto `yklvcnoiblejvmjnqqjy`. Todo corre solo:
+Todo corre solo en tu proyecto de Supabase:
 
 | Tarea | Frecuencia | Qué hace |
 |---|---|---|
@@ -81,7 +82,7 @@ El sistema funciona sin token. Con uno (Supabase → Edge Functions → Secrets 
 ### Traer las migraciones como archivos
 
 ```bash
-npx supabase link --project-ref yklvcnoiblejvmjnqqjy
+npx supabase link --project-ref <tu-project-ref>
 npx supabase migration fetch
 ```
 

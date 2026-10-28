@@ -3,9 +3,9 @@ services:
     build:
       context: .
       args:
-        # Claves públicas: funcionan sin configurar nada. Puedes sobrescribirlas con un archivo .env
-        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-https://yklvcnoiblejvmjnqqjy.supabase.co}
-        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-sb_publishable_iSog4C1FFIkOnDa4LjmC0g_as0Zkj1m}
+        # Se leen del archivo .env (cópialo desde .env.example y pon tus valores)
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?Falta VITE_SUPABASE_URL. Copia .env.example como .env y completa tus valores}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:?Falta VITE_SUPABASE_PUBLISHABLE_KEY. Copia .env.example como .env y completa tus valores}
     image: skillverse-web
     container_name: skillverse
     ports:
