@@ -1,0 +1,13 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        # Claves públicas: funcionan sin configurar nada. Puedes sobrescribirlas con un archivo .env
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-https://yklvcnoiblejvmjnqqjy.supabase.co}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-sb_publishable_iSog4C1FFIkOnDa4LjmC0g_as0Zkj1m}
+    image: skillverse-web
+    container_name: skillverse
+    ports:
+      - "${PORT:-8080}:80"
+    restart: unless-stopped

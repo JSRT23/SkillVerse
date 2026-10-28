@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+@theme {
+  /* Paleta: noche violeta con ámbar (núcleo de la mascota) y turquesa (en vivo) */
+  --color-ink: #15123a;
+  --color-ink-deep: #0f0d2b;
+  --color-dusk: #221e52;
+  --color-dusk-2: #2c2766;
+  --color-line: #3a3480;
+  --color-silk: #f3f0ff;
+  --color-haze: #a9a3d9;
+  --color-amber: #ffc447;
+  --color-amber-deep: #f2a516;
+  --color-lagoon: #38d6c4;
+  --color-violet: #7b6cf6;
+  --color-danger: #ff6b81;
+
+  --font-display: "Unbounded Variable", "Unbounded", system-ui, sans-serif;
+  --font-sans: "Manrope Variable", "Manrope", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --shadow-glow: 0 10px 40px -12px rgb(123 108 246 / 0.55);
+  --shadow-lift: 0 18px 50px -18px rgb(8 6 30 / 0.9), 0 2px 0 0 rgb(255 255 255 / 0.04) inset;
+  --shadow-amber: 0 10px 34px -10px rgb(255 196 71 / 0.6);
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-ink text-silk font-sans antialiased;
+    background-image:
+      radial-gradient(1200px 600px at 85% -10%, rgb(123 108 246 / 0.18), transparent 60%),
+      radial-gradient(900px 500px at -10% 30%, rgb(56 214 196 / 0.07), transparent 60%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+  }
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: rgb(255 196 71 / 0.35);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-amber);
+    outline-offset: 3px;
+    border-radius: 10px;
+  }
+}
+
+@utility container-page {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+@utility panel {
+  @apply rounded-[18px] border border-line/70 bg-dusk/70 backdrop-blur-sm;
+  box-shadow: var(--shadow-lift);
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors duration-200 cursor-pointer select-none;
+}
+@utility btn-primary {
+  @apply btn bg-amber text-ink-deep hover:bg-amber-deep;
+  box-shadow: var(--shadow-amber);
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-dusk/60 text-silk hover:border-violet hover:bg-dusk-2;
+}
+@utility chip {
+  @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold;
+}
+@utility section-title {
+  @apply font-display text-2xl font-semibold sm:text-3xl;
+}
+
+/* Scrollbar discreta */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
