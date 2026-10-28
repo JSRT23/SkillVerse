@@ -9,10 +9,11 @@ const MIN = 60 * 1000
 export const PAGE_SIZE = 24
 
 export const useTaxonomy = () => useQuery({ queryKey: ["taxonomy"], queryFn: fetchTaxonomy, staleTime: Infinity })
-export const useCounts = () => useQuery({ queryKey: ["counts"], queryFn: catalogCounts, staleTime: 2 * MIN })
-export const useSyncStatus = () => useQuery({ queryKey: ["sync"], queryFn: syncStatus, refetchInterval: 30_000 })
+export const useCounts = () => useQuery({ queryKey: ["counts"], queryFn: catalogCounts, staleTime: 10 * MIN })
+// Los conteos y el estado se recalculan en el servidor cada 10 minutos: no hace falta pedirlos más seguido
+export const useSyncStatus = () => useQuery({ queryKey: ["sync"], queryFn: syncStatus, staleTime: 5 * MIN, refetchInterval: 5 * MIN })
 export const usePopular = (limit = 9) => useQuery({ queryKey: ["popular", limit], queryFn: () => popularSkills(limit), staleTime: 5 * MIN })
-export const useNewest = (limit = 8) => useQuery({ queryKey: ["newest", limit], queryFn: () => newestSkills(limit), staleTime: MIN })
+export const useNewest = (limit = 8) => useQuery({ queryKey: ["newest", limit], queryFn: () => newestSkills(limit), staleTime: 5 * MIN })
 export const useRepoTrends = (limit = 8) => useQuery({ queryKey: ["repos", limit], queryFn: () => fetchRepoTrends(limit), staleTime: 5 * MIN })
 export const useSkill = (slug) => useQuery({ queryKey: ["skill", slug], queryFn: () => getSkill(slug), enabled: !!slug, staleTime: 5 * MIN })
 export const useSimilar = (id) => useQuery({ queryKey: ["similar", id], queryFn: () => similarSkills(id, 6), enabled: !!id, staleTime: 10 * MIN })

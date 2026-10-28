@@ -35,8 +35,9 @@ export function useRealtime() {
       if (!refreshTimer.current) {
         refreshTimer.current = setTimeout(() => {
           refreshTimer.current = null
-          for (const key of ["newest", "counts", "sync", "skills", "skills-count"]) queryClient.invalidateQueries({ queryKey: [key] })
-        }, 20_000)
+          // Los listados del explorador no se recargan solos: los conteos y novedades salen de cachés del servidor
+          for (const key of ["newest", "counts", "sync"]) queryClient.invalidateQueries({ queryKey: [key] })
+        }, 5 * 60_000)
       }
     })
     return () => {
