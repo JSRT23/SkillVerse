@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react"
 import { Link, useLocation } from "react-router"
 import { X } from "lucide-react"
-import Ocho from "./Ocho"
+import Nodo from "./Nodo"
 import { formatNumber } from "../lib/format"
 
 export default function Toasts({ toast, onDismiss }) {
@@ -18,7 +18,7 @@ export default function Toasts({ toast, onDismiss }) {
             transition={{ type: "spring", stiffness: 380, damping: 28 }}
             className="shell pointer-events-auto flex items-center gap-3 rounded-[22px] border border-line bg-elev p-3 pr-2 text-fg shadow-[0_24px_60px_-20px_rgb(4_3_18/0.9)]"
           >
-            <Ocho size={58} mood="happy" outfit="party" accent="#1FC7B6" tentacles={false} bob={false} title="" />
+            <Nodo size={58} mood="surprised" title="" className="shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold text-teal">
                 {toast.count > 1 ? `${formatNumber(toast.count)} skills nuevas en el catálogo` : "Nueva skill en el catálogo"}

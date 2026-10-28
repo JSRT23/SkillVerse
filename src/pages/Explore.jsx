@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from "motion/react"
 import { useSearchParams } from "react-router"
 import { ChevronDown, LayoutGrid, List, LoaderCircle, Search, SlidersHorizontal, Sparkles, X } from "lucide-react"
 import SkillCard, { SkillRow } from "../components/SkillCard"
-import Ocho from "../components/Ocho"
+import Nodo from "../components/Nodo"
+import { useNodo, useNodoWork } from "../nodoContext"
 import Modal from "../components/Modal"
 import { CategoryIcon, Skeleton } from "../components/ui"
 import { useSkillList, useTaxonomyWithCounts } from "../hooks/useCatalog"
@@ -135,6 +136,13 @@ export default function Explore({ newIds }) {
 
   const list = useSkillList({ q, category: cat, subcategory: sub, origin, noScripts, sort, smart })
   const { items, total, isLoading, isError, refetch, hasNextPage, isFetchingNextPage, fetchNextPage, isFetching } = list
+  useNodoWork(cat, sub)
+
+  // Nodo reacciona a lo que pasa con la búsqueda
+  const { react } = useNodo()
+  const empty = !isLoading && !isError && items.length === 0 && Boolean(q || cat || origin || noScripts)
+  useEffect(() => { if (empty) react("sad", "No encontré nada… prueba otras palabras", 2600) }, [empty, q]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (isError) react("angry", "¡Se cayó la conexión!", 2600) }, [isError]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Scroll infinito
   useEffect(() => {
@@ -163,7 +171,7 @@ export default function Explore({ newIds }) {
           <h1 className="text-4xl font-bold sm:text-[3.2rem]" style={{ letterSpacing: "-0.04em" }}>Explorar skills</h1>
           <p className="mt-3 max-w-xl text-muted">Busca con tus palabras y filtra por categoría, subcategoría u origen. Los filtros quedan en la dirección para compartirlos.</p>
         </div>
-        <Ocho size={120} outfit="magnifier" accent="#06B6D4" mood={q ? "curious" : "idle"} track className="hidden shrink-0 lg:block" />
+        <Nodo size={120} {...(cat ? { category: cat, subcategory: sub } : { hat: "glasses", prop: "magnifier" })} mood={isFetching ? "thinking" : q ? "happy" : "idle"} track className="hidden shrink-0 lg:block" title="Nodo te ayuda a buscar" />
       </div>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -243,7 +251,7 @@ export default function Explore({ newIds }) {
 
           {isError && (
             <div className="card mt-6 flex flex-col items-center gap-3 p-10 text-center">
-              <Ocho size={110} mood="sleep" tentacles={false} />
+              <Nodo size={110} mood="angry" title="Nodo enojado: falló la conexión" />
               <p className="font-semibold">No pudimos cargar las skills.</p>
               <p className="text-sm text-muted">Revisa tu conexión y vuelve a intentarlo.</p>
               <button type="button" onClick={() => refetch()} className="btn-primary mt-2">Reintentar</button>
@@ -270,7 +278,7 @@ export default function Explore({ newIds }) {
 
           {!isLoading && !isError && items.length === 0 && (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card flex flex-col items-center gap-3 p-12 text-center">
-              <Ocho size={140} mood="curious" outfit="magnifier" accent="#06B6D4" />
+              <Nodo size={140} mood="sad" hat="glasses" prop="magnifier" title="Nodo no encontró resultados" />
               <p className="font-display text-xl font-semibold">Ninguna skill coincide</p>
               <p className="max-w-md text-sm text-muted">Prueba con otras palabras, activa la búsqueda inteligente o quita algún filtro.</p>
               <button type="button" onClick={() => { setQInput(""); setParams({}, { replace: true }) }} className="btn-primary mt-2">Quitar filtros</button>

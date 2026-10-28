@@ -2,7 +2,7 @@
 
 Directorio independiente de **Agent Skills** (formato `SKILL.md`) con miles de skills descubiertas automáticamente en GitHub, **clasificadas con IA en 8 categorías y 37 subcategorías**, con búsqueda inteligente y actualización en tiempo real.
 
-Su mascota es **Ocho**, un pulpo con un tentáculo para cada categoría.
+Su mascota es **Nodo**, una araña saltarina morada en pixel art (diseño propio). Teje la red de categorías, hace travesuras por todo el sitio y, cuando trabajas, se viste de ayudante: un gorro por categoría y un objeto por subcategoría.
 
 ## Arrancar con Docker
 
@@ -23,13 +23,14 @@ npm run dev
 
 ## Qué incluye
 
-- **Inicio**: Ocho en el centro con sus tentáculos hacia las 8 categorías (pasa el cursor por una y la mira, se pone su accesorio y su tentáculo se ilumina), cinta en vivo de skills nuevas, populares en bloque destacado, categorías con subcategorías, ranking de repositorios.
+- **Inicio**: telaraña con las 8 categorías. Nodo camina solo de una categoría a la siguiente cada pocos segundos y se cambia de gorro; al pasar el cursor por una, va hacia ella. Debajo: cinta en vivo de skills nuevas, populares, categorías con subcategorías y ranking de repositorios.
 - **Modo día y noche**: el contenido cambia de tema con una transición circular; el menú y el pie quedan siempre de noche. Recuerda tu elección y respeta la preferencia del sistema.
 - **Explorar**: barra lateral con categorías y subcategorías, filtros por origen (oficial, verificada, comunidad) y sin scripts, vista de tarjetas o lista, scroll infinito, filtros en la URL.
 - **Búsqueda inteligente**: entiende lo que quieres decir, incluso en español (“probar mi web en el navegador” encuentra skills de testing con navegador). Atajo `Ctrl + K`.
 - **Ficha de cada skill**: modal en dos columnas con instalación en tres modalidades, datos del repo, avisos de seguridad, ejemplos de uso y **skills parecidas** encontradas por significado.
 - **Categorías**: página por categoría con pestañas de subcategoría y conteos.
-- **Conoce a Ocho**: 8 accesorios, gorro de dormir y 4 estados de ánimo; los ojos siguen el cursor.
+- **Nodo por todo el sitio**: baja colgado de un hilo, cruza la pantalla, se asoma por los bordes y se duerme en una esquina. Celebra cuando copias un comando, se pone triste si la búsqueda no encuentra nada y se enoja si falla la conexión. Al entrar a una categoría, subcategoría o skill se queda abajo a la izquierda vestido para esa tarea. Se puede esconder desde el pie de página.
+- **Conoce a Nodo**: 10 estados de ánimo, 8 gorros y 37 objetos para probárselos; los ojos siguen el cursor.
 
 ## Stack
 
@@ -85,6 +86,10 @@ El sistema funciona sin token. Con uno (Supabase → Edge Functions → Secrets 
 npx supabase link --project-ref <tu-project-ref>
 npx supabase migration fetch
 ```
+
+### Editar el pixel art de Nodo
+
+Los dibujos están en `scripts/nodo-sprites.py` (cuadrícula de 40×36). Tras cambiarlos, ejecuta `python3 scripts/nodo-sprites.py` para regenerar `src/components/nodo/sprites.js`. El vestuario por categoría y subcategoría está en `src/lib/nodo.js`.
 
 ## Skills incluidas para trabajar en este repo
 

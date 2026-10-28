@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { ChevronDown, FileCode2, FolderTree, ShieldCheck, Wand2 } from "lucide-react"
-import Ocho from "../components/Ocho"
+import Nodo from "../components/Nodo"
 import { CommandLine } from "../components/ui"
 
 const AGENTS = [
@@ -67,7 +67,7 @@ export default function Guide() {
           <h1 className="text-4xl font-bold sm:text-[3.2rem]" style={{ letterSpacing: "-0.04em" }}>Guía de Agent Skills</h1>
           <p className="mt-3 max-w-xl text-lg text-muted">Qué son, cómo se instalan en cada agente y cómo usarlas sin riesgos.</p>
         </div>
-        <Ocho size={140} outfit="paper" accent="#3B82F6" mood="happy" track />
+        <Nodo size={140} hat="readers" prop="book" mood="happy" track title="Nodo con su libro de guía" />
       </div>
 
       <nav aria-label="En esta guía" className="mt-8 flex flex-wrap gap-2">

@@ -2,10 +2,9 @@ import { memo, useRef } from "react"
 import { motion } from "motion/react"
 import { Link, useLocation } from "react-router"
 import { BadgeCheck, FileCode2, ShieldCheck, Sparkle } from "lucide-react"
-import Ocho from "./Ocho"
+import Nodo from "./Nodo"
 import { RepoAvatar } from "./RepoAvatar"
 import { CategoryIcon, CopyButton, StarCount } from "./ui"
-import { categoryMeta } from "../lib/categories"
 import { timeAgo } from "../lib/format"
 
 /** Luz que sigue al cursor dentro de la tarjeta. */
@@ -63,7 +62,7 @@ function SkillCard({ skill, index = 0, isNew = false, featured = false }) {
           <>
             <span className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full blur-3xl" style={{ background: `${color}30` }} aria-hidden />
             <span className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/3 transition-transform duration-500 group-hover:-translate-y-[40%] group-hover:rotate-3 sm:block">
-              <Ocho size={200} outfit={categoryMeta(skill.category_slug).outfit} accent={color} mood="happy" bob={false} title="" />
+              <Nodo size={190} category={skill.category_slug} subcategory={skill.subcategory_slug} mood="happy" title="" />
             </span>
           </>
         )}

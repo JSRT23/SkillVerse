@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useLocation, useNavigate } from "react-router"
 import { ArrowRight, CornerDownLeft, LoaderCircle, Search, Sparkles } from "lucide-react"
 import Modal from "./Modal"
-import Ocho from "./Ocho"
+import Nodo from "./Nodo"
 import { CategoryIcon, Kbd, StarCount } from "./ui"
 import { usePopular } from "../hooks/useCatalog"
 import { searchSkills, smartSearch } from "../lib/supabase"
@@ -131,7 +131,7 @@ function PaletteBody({ onClose }) {
         </AnimatePresence>
         {q.length >= 2 && !loading && !results.length && (
           <li className="flex flex-col items-center gap-2 px-6 py-8 text-center">
-            <Ocho size={96} mood="curious" tentacles={false} bob={false} />
+            <Nodo size={96} mood="sad" hat="glasses" prop="magnifier" title="Nodo no encontró nada" />
             <p className="font-semibold">Nada con “{query}”</p>
             <p className="text-sm text-muted">Prueba con otras palabras o abre el explorador con filtros.</p>
           </li>

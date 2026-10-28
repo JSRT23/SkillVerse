@@ -4,7 +4,8 @@ import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "re
 import { Footer, Navbar } from "./components/Layout"
 import CommandPalette from "./components/CommandPalette"
 import Modal from "./components/Modal"
-import Ocho from "./components/Ocho"
+import Nodo from "./components/Nodo"
+import NodoRoamer from "./components/NodoRoamer"
 import SkillDetail from "./components/SkillDetail"
 import Toasts from "./components/Toasts"
 import { Skeleton } from "./components/ui"
@@ -19,7 +20,7 @@ const Categories = lazy(() => import("./pages/Categories").then((m) => ({ defaul
 const Category = lazy(() => import("./pages/Categories").then((m) => ({ default: m.Category })))
 const SkillPage = lazy(() => import("./pages/SkillPage"))
 const Guide = lazy(() => import("./pages/Guide"))
-const OchoPage = lazy(() => import("./pages/OchoPage"))
+const NodoPage = lazy(() => import("./pages/NodoPage"))
 
 /** Ficha de una skill abierta como modal sobre la página donde estabas. */
 function SkillModal() {
@@ -48,7 +49,7 @@ function SkillModal() {
 function PageLoader() {
   return (
     <div className="grid min-h-[60vh] place-items-center">
-      <Ocho size={120} mood="curious" />
+      <Nodo size={120} mood="thinking" title="Cargando" />
     </div>
   )
 }
@@ -107,8 +108,8 @@ export default function App() {
             <Route path="/categoria/:slug" element={<Page><Category newIds={newIds} /></Page>} />
             <Route path="/skill/:slug" element={<Page><SkillPage /></Page>} />
             <Route path="/guia" element={<Page><Guide /></Page>} />
-            <Route path="/ocho" element={<Page><OchoPage /></Page>} />
-            <Route path="/nodo" element={<Navigate to="/ocho" replace />} />
+            <Route path="/nodo" element={<Page><NodoPage /></Page>} />
+            <Route path="/ocho" element={<Navigate to="/nodo" replace />} />
             <Route path="*" element={<Page><NotFound /></Page>} />
           </Routes>
         </AnimatePresence>
@@ -125,6 +126,7 @@ export default function App() {
       <Footer />
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
       <Toasts toast={toast} onDismiss={dismiss} />
+      <NodoRoamer />
     </SearchContext.Provider>
   )
 }

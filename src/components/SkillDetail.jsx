@@ -4,7 +4,8 @@ import { Link, useLocation } from "react-router"
 import {
   CalendarClock, ChevronRight, ExternalLink, FileCode2, FileText, Files, GitFork, Lightbulb, Radar, Scale, Sparkles, TriangleAlert,
 } from "lucide-react"
-import Ocho from "./Ocho"
+import Nodo from "./Nodo"
+import { useNodoWork } from "../nodoContext"
 import { RepoAvatar } from "./RepoAvatar"
 import { CategoryIcon, CommandLine, Skeleton, StarCount, TrustBadge } from "./ui"
 import { useSimilar } from "../hooks/useCatalog"
@@ -118,6 +119,7 @@ function Similar({ skill }) {
 export default function SkillDetail({ skill, inModal = false }) {
   const meta = categoryMeta(skill.category_slug)
   const color = skill.category_color ?? "#7C5CFF"
+  useNodoWork(skill.category_slug === "other" ? null : skill.category_slug, skill.subcategory_slug)
 
   return (
     <div>
@@ -131,7 +133,7 @@ export default function SkillDetail({ skill, inModal = false }) {
           animate={{ y: 0, opacity: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 160, damping: 16, delay: 0.1 }}
         >
-          <Ocho size={inModal ? 170 : 200} outfit={meta.outfit} accent={color} mood="happy" track title="" />
+          <Nodo size={inModal ? 160 : 190} category={skill.category_slug} subcategory={skill.subcategory_slug} mood="happy" track title="" />
         </motion.div>
 
         <div className="relative max-w-2xl">

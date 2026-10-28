@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, animate, motion, useInView, useReducedMotion } from "motion/react"
 import { BadgeCheck, Check, Copy, ShieldCheck, Star, Users } from "lucide-react"
 import { categoryMeta } from "../lib/categories"
+import { useNodo } from "../nodoContext"
 import { formatCompact, formatNumber } from "../lib/format"
 
 /** Icono de categoría en una pastilla con su color. */
@@ -51,6 +52,7 @@ export function TrustBadge({ trust, className = "" }) {
 
 export function CopyButton({ text, label = "Copiar", className = "", onCopied }) {
   const [copied, setCopied] = useState(false)
+  const { react } = useNodo()
   const copy = async (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -58,8 +60,11 @@ export function CopyButton({ text, label = "Copiar", className = "", onCopied })
       await navigator.clipboard.writeText(text)
       setCopied(true)
       onCopied?.()
+      react("celebrate", "¡Copiado! A instalar", 2000)
       setTimeout(() => setCopied(false), 1600)
-    } catch { /* el navegador bloqueó el portapapeles */ }
+    } catch {
+      react("sad", "No pude copiar. Selecciónalo a mano", 2400)
+    }
   }
   return (
     <button type="button" onClick={copy} className={`btn-icon h-9 w-9 ${copied ? "border-teal/60 text-teal" : ""} ${className}`} aria-label={copied ? "Copiado" : label} title={copied ? "Copiado" : label}>

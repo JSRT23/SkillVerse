@@ -1,10 +1,10 @@
 import { Link } from "react-router"
-import Ocho from "../components/Ocho"
+import Nodo from "../components/Nodo"
 
 export default function NotFound({ what = "página" }) {
   return (
     <div className="container-page flex flex-col items-center py-24 text-center">
-      <Ocho size={190} mood="sleep" outfit="nightcap" />
+      <Nodo size={190} mood="sleep" title="Nodo se quedó dormido" />
       <h1 className="mt-6 text-3xl font-bold sm:text-4xl">No encontramos esa {what}</h1>
       <p className="mt-3 max-w-md text-muted">
         {what === "skill"

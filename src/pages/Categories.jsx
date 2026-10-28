@@ -3,11 +3,12 @@ import { AnimatePresence, motion } from "motion/react"
 import { Link, useParams, useSearchParams } from "react-router"
 import { ChevronLeft, LoaderCircle } from "lucide-react"
 import SkillCard from "../components/SkillCard"
-import Ocho from "../components/Ocho"
+import Nodo from "../components/Nodo"
+import { useNodoWork } from "../nodoContext"
 import { CategoryIcon, Skeleton } from "../components/ui"
 import { CategoryPanel } from "./Home"
 import { useSkillList, useTaxonomyWithCounts } from "../hooks/useCatalog"
-import { categoryMeta, MAIN_CATEGORIES } from "../lib/categories"
+import { MAIN_CATEGORIES } from "../lib/categories"
 import { formatNumber } from "../lib/format"
 import NotFound from "./NotFound"
 
@@ -24,7 +25,7 @@ export function Categories() {
             Ocho categorías y {formatNumber(categories.reduce((n, c) => n + c.subcategories.length, 0))} subcategorías. Un modelo de IA lee cada skill y la ubica donde mejor encaja.
           </p>
         </div>
-        <Ocho size={130} mood="happy" track className="hidden shrink-0 md:block" />
+        <Nodo size={130} mood="happy" hat="cap" prop="clipboard" track className="hidden shrink-0 md:block" title="Nodo con su tablero de categorías" />
       </div>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {isLoading && Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-64" />)}
@@ -36,7 +37,7 @@ export function Categories() {
             <span className="font-display font-semibold">Otras</span>
             <span className="ml-2 text-sm text-muted">{formatNumber(other.count)} skills que no encajan claramente en ninguna categoría</span>
           </span>
-          <Ocho size={56} outfit="party" accent="#E255C8" tentacles={false} bob={false} title="" />
+          <Nodo size={60} mood="thinking" title="" />
         </Link>
       )}
     </div>
@@ -50,6 +51,7 @@ export function Category({ newIds }) {
   const { data: categories = [], isLoading: loadingCats } = useTaxonomyWithCounts()
   const category = categories.find((c) => c.slug === slug)
   const list = useSkillList({ category: slug, subcategory: sub, sort: "stars" })
+  useNodoWork(slug === "other" ? null : slug, sub)
   const sentinel = useRef(null)
   const { items, total, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = list
 
@@ -64,7 +66,6 @@ export function Category({ newIds }) {
   if (!loadingCats && categories.length && !category) return <NotFound />
 
   const color = category?.color ?? "#7C5CFF"
-  const meta = categoryMeta(slug)
   const others = categories.filter((c) => c.slug !== slug && c.count > 0 && c.slug !== "other")
   const setSub = (s) => {
     const next = new URLSearchParams(params)
@@ -88,7 +89,7 @@ export function Category({ newIds }) {
             <p className="mt-4 font-display text-lg font-semibold" style={{ color }}>{formatNumber(category?.count ?? 0)} skills</p>
           </motion.div>
           <motion.div initial={{ scale: 0.6, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 180, damping: 14 }} className="justify-self-center">
-            <Ocho size={230} outfit={meta.outfit} accent={color} mood="happy" track />
+            <Nodo size={230} category={slug} subcategory={sub} mood="happy" track title={`Nodo vestido para ${category?.name ?? "la categoría"}`} />
           </motion.div>
         </div>
       </section>
@@ -122,7 +123,7 @@ export function Category({ newIds }) {
         </div>
         {!isLoading && items.length === 0 && (
           <div className="card flex flex-col items-center gap-3 p-12 text-center">
-            <Ocho size={130} mood="sleep" outfit={meta.outfit} accent={color} />
+            <Nodo size={130} mood="sleep" category={slug} subcategory={sub} title="Nodo duerme mientras llegan skills" />
             <p className="font-semibold">Todavía no hay skills aquí.</p>
             <p className="text-sm text-muted">El rastreador sigue sumando skills cada minuto. Vuelve pronto o mira otra subcategoría.</p>
           </div>

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { MotionConfig } from "motion/react"
 import App from "./App"
 import { ThemeProvider } from "./theme"
+import { NodoProvider } from "./nodoContext"
 import "@fontsource-variable/bricolage-grotesque"
 import "@fontsource-variable/geist"
 import "@fontsource-variable/geist-mono"
@@ -19,9 +20,11 @@ createRoot(document.getElementById("root")).render(
     <QueryClientProvider client={queryClient}>
       <MotionConfig reducedMotion="user">
         <ThemeProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <NodoProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </NodoProvider>
         </ThemeProvider>
       </MotionConfig>
     </QueryClientProvider>

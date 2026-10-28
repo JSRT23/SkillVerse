@@ -1,13 +1,14 @@
+import { useState } from "react"
 import { motion } from "motion/react"
 import { Link, useLocation, useNavigate } from "react-router"
 import { ArrowUpRight, BookOpen, Compass, Search, Sparkles, TrendingUp } from "lucide-react"
-import OctoHero from "../components/OctoHero"
-import Ocho from "../components/Ocho"
+import WebHero from "../components/WebHero"
+import Nodo from "../components/Nodo"
 import SkillCard from "../components/SkillCard"
 import { RepoAvatar } from "../components/RepoAvatar"
 import { AnimatedNumber, CategoryIcon, CommandLine, Kbd, SectionHeader, Skeleton, StarCount, TrustBadge } from "../components/ui"
 import { useNewest, usePopular, useRepoTrends, useSyncStatus, useTaxonomyWithCounts } from "../hooks/useCatalog"
-import { categoryMeta, MAIN_CATEGORIES } from "../lib/categories"
+import { MAIN_CATEGORIES } from "../lib/categories"
 import { formatCompact, formatNumber, timeAgo } from "../lib/format"
 import { useSearch } from "../searchContext"
 
@@ -72,7 +73,7 @@ function Hero({ categories, status }) {
           </dl>
         </motion.div>
 
-        <OctoHero categories={categories} />
+        <WebHero categories={categories} />
       </div>
     </section>
   )
@@ -136,6 +137,7 @@ function Newest({ newIds }) {
 }
 
 export function CategoryPanel({ category: c, index = 0 }) {
+  const [sub, setSub] = useState(null)
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -153,7 +155,7 @@ export function CategoryPanel({ category: c, index = 0 }) {
           <p className="mt-1 text-sm font-semibold tabular-nums" style={{ color: c.color }}>{formatNumber(c.count)} skills</p>
         </Link>
         <motion.span className="-mr-2 -mt-2 shrink-0" whileHover={{ rotate: -6, scale: 1.08 }}>
-          <Ocho size={92} outfit={categoryMeta(c.slug).outfit} accent={c.color} tentacles={false} bob={false} title="" />
+          <Nodo size={96} category={c.slug} subcategory={sub} mood={sub ? "happy" : "idle"} title="" />
         </motion.span>
       </div>
       <ul className="relative mt-4 flex flex-wrap gap-1.5">
@@ -161,6 +163,10 @@ export function CategoryPanel({ category: c, index = 0 }) {
           <li key={s.slug}>
             <Link
               to={`/categoria/${c.slug}?sub=${s.slug}`}
+              onMouseEnter={() => setSub(s.slug)}
+              onMouseLeave={() => setSub(null)}
+              onFocus={() => setSub(s.slug)}
+              onBlur={() => setSub(null)}
               className="chip border-line bg-bg px-2.5 py-1 text-[12.5px] text-muted transition-colors hover:border-[var(--c)] hover:text-fg"
             >
               {s.name}
@@ -178,8 +184,8 @@ function Categories({ categories }) {
   return (
     <section className="container-page py-20">
       <SectionHeader
-        title="Ocho categorías, un tentáculo para cada una"
-        description="Cada skill se clasifica con IA según lo que hace. Entra por categoría o ve directo a la subcategoría que necesitas."
+        title="Ocho categorías, un gorro para cada una"
+        description="Cada skill se clasifica con IA según lo que hace. Pasa el cursor por una subcategoría y Nodo saca su herramienta."
         action={<Link to="/categorias" className="btn-ghost">Todas las categorías <ArrowUpRight size={15} aria-hidden /></Link>}
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -270,7 +276,7 @@ function InstallSteps() {
             </div>
           </div>
           <div className="hidden justify-self-center lg:block">
-            <Ocho size={260} outfit="hardhat" mood="happy" track />
+            <Nodo size={250} hat="hardhat" prop="check" mood="happy" track title="Nodo listo para instalar" />
           </div>
         </div>
       </div>

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { Link, NavLink, useLocation } from "react-router"
 import { ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react"
-import Ocho from "./Ocho"
+import Nodo from "./Nodo"
+import { useNodo } from "../nodoContext"
 import { CategoryIcon, Kbd } from "./ui"
 import { useSyncStatus, useTaxonomyWithCounts } from "../hooks/useCatalog"
 import { MAIN_CATEGORIES } from "../lib/categories"
@@ -13,14 +14,14 @@ const LINKS = [
   { to: "/explorar", label: "Explorar" },
   { to: "/categorias", label: "Categorías", mega: true },
   { to: "/guia", label: "Guía" },
-  { to: "/ocho", label: "Conoce a Ocho" },
+  { to: "/nodo", label: "Conoce a Nodo" },
 ]
 
 export function Logo() {
   return (
     <Link to="/" className="group flex items-center gap-2.5" aria-label="SkillVerse, ir al inicio">
       <motion.span whileHover={{ rotate: [0, -10, 8, 0], scale: 1.06 }} transition={{ duration: 0.6 }} className="-my-1 inline-block">
-        <Ocho size={38} tentacles={false} bob={false} title="" />
+        <Nodo size={40} title="" />
       </motion.span>
       <span className="font-display text-[19px] font-bold tracking-tight text-fg">
         Skill<span className="text-gradient">Verse</span>
@@ -198,6 +199,18 @@ export function Navbar({ onSearch }) {
   )
 }
 
+function NodoToggle() {
+  const { hidden, setHidden } = useNodo()
+  return (
+    <p className="flex items-center gap-3">
+      <span>Hecho con React, Supabase y un poco de seda de araña.</span>
+      <button type="button" onClick={() => setHidden(!hidden)} className="rounded-full border border-line px-2.5 py-1 font-semibold text-muted transition-colors hover:border-brand/60 hover:text-fg cursor-pointer">
+        {hidden ? "Mostrar a Nodo" : "Esconder a Nodo"}
+      </button>
+    </p>
+  )
+}
+
 export function Footer() {
   const { data } = useSyncStatus()
   return (
@@ -218,7 +231,7 @@ export function Footer() {
         {[
           ["Explora", [["/explorar", "Todas las skills"], ["/categorias", "Categorías"], ["/explorar?orden=newest", "Recién llegadas"]]],
           ["Aprende", [["/guia", "Qué es una skill"], ["/guia#instalar", "Cómo instalarlas"], ["/guia#seguridad", "Seguridad"]]],
-          ["Proyecto", [["/ocho", "Conoce a Ocho"], ["https://github.com/JSRT23/SkillVerse", "Código en GitHub"]]],
+          ["Proyecto", [["/nodo", "Conoce a Nodo"], ["https://github.com/JSRT23/SkillVerse", "Código en GitHub"]]],
         ].map(([title, links]) => (
           <div key={title}>
             <h3 className="font-display text-sm font-semibold">{title}</h3>
@@ -236,7 +249,7 @@ export function Footer() {
       </div>
       <div className="container-page flex flex-col gap-2 border-t border-line py-6 text-xs text-subtle sm:flex-row sm:items-center sm:justify-between">
         <p>No afiliado a Anthropic ni a ningún proveedor de agentes. Cada skill pertenece a su autor y conserva su licencia.</p>
-        <p>Hecho con React, Supabase y mucha tinta de pulpo.</p>
+        <NodoToggle />
       </div>
     </footer>
   )
