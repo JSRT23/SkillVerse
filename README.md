@@ -13,6 +13,12 @@ docker compose up --build
 
 Abre http://localhost:8080. Docker lee la URL y la clave pública de Supabase desde `.env`, que no se sube al repositorio. Para otro puerto, cambia `PORT` en `.env`.
 
+## Desplegar en Vercel
+
+1. Importa el repositorio en Vercel. Detecta Vite solo; `vercel.json` ya trae el build y las rutas.
+2. En **Settings → Environment Variables** agrega `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` con los valores de tu `.env`.
+3. Despliega. Si cambias las variables, vuelve a desplegar: Vite las incrusta al compilar.
+
 ## Desarrollo local
 
 ```bash
