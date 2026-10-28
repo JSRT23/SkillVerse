@@ -214,6 +214,10 @@
 @keyframes nodo-heart { 0% { opacity: 1; transform: translateY(0) } 50% { opacity: 1; transform: translateY(-1px) } 85% { opacity: 0 } }
 @keyframes nodo-wear { from { opacity: 0; transform: translateY(-3px) } to { opacity: 1; transform: translateY(0) } }
 
+/* Paseo de lado a lado (como en el boceto) */
+.nodo-stroll { animation: nodo-stroll 2.8s step-end infinite; }
+@keyframes nodo-stroll { 0% { transform: translateX(-3px) } 25% { transform: translateX(-1px) } 50% { transform: translateX(1px) } 75% { transform: translateX(3px) } }
+
 /* Hilo de seda cuando Nodo baja colgado */
 @keyframes nodo-swing { 0%, 100% { transform: rotate(-5deg) } 50% { transform: rotate(5deg) } }
 
@@ -224,12 +228,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  *, *::before, *::after {
+  /* Nodo y sus animaciones pixel quedan fuera: siempre se mueve */
+  :where(*, *::before, *::after):not(.nodo, .nodo *, .nodo-keep) {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nodo-legB { opacity: 0; }
 }

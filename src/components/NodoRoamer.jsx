@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { AnimatePresence, MotionConfig, motion } from "motion/react"
 import { useLocation } from "react-router"
 import Nodo from "./Nodo"
 import { useTaxonomyWithCounts } from "../hooks/useCatalog"
@@ -109,7 +109,7 @@ function buildScene(name, { w, h, size, height, from }) {
 
 export default function NodoRoamer() {
   const { work, reaction, hidden, react } = useNodo()
-  const reduced = useReducedMotion()
+  const reduced = false // Nodo siempre se anima; quien no lo quiera puede esconderlo
   const location = useLocation()
   const { data: taxonomy = [] } = useTaxonomyWithCounts()
   const vp = useViewport()
@@ -194,6 +194,7 @@ export default function NodoRoamer() {
   }
 
   return (
+    <MotionConfig reducedMotion="never">
     <div className="pointer-events-none fixed left-0 top-0 z-[35]" aria-hidden>
       <motion.div
         className="absolute left-0 top-0"
@@ -230,7 +231,7 @@ export default function NodoRoamer() {
           onClick={onPoke}
           onMouseEnter={() => setBubble(true)}
           onMouseLeave={() => setBubble(false)}
-          className="pointer-events-auto block w-full cursor-pointer"
+          className="nodo-keep pointer-events-auto block w-full cursor-pointer"
           style={{
             transform: step.flip ? "scaleX(-1)" : undefined,
             transformOrigin: "50% 0",
@@ -248,5 +249,6 @@ export default function NodoRoamer() {
         </button>
       </motion.div>
     </div>
+    </MotionConfig>
   )
 }

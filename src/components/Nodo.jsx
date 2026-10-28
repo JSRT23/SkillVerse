@@ -11,6 +11,7 @@ import { outfitFor } from "../lib/nodo"
  *  - category / subcategory: slugs; ponen el gorro y el objeto que corresponden
  *  - hat / prop: fuerzan un gorro u objeto concreto (null para quitarlo)
  *  - track: los ojos siguen el cursor
+ *  - stroll: al caminar, además se pasea de lado a lado
  *  - title: texto accesible ("" lo vuelve decorativo)
  */
 
@@ -84,6 +85,7 @@ export default function Nodo({
   hat,
   prop,
   track = false,
+  stroll = false,
   title = "Nodo",
   className = "",
   style,
@@ -129,6 +131,7 @@ export default function Nodo({
       )}
       {mood === "love" && <Layer name="fx_heart" className="nodo-heart" />}
 
+      <g className={stroll && mood === "walk" ? "nodo-stroll" : undefined}>
       <g className={BODY_ANIM[mood] ?? "nodo-breathe"}>
         {walking ? (
           <>
@@ -152,6 +155,7 @@ export default function Nodo({
         {mood === "sad" && <Layer name="fx_tear" className="nodo-tear" />}
         {hatName && <Layer name={`hat_${hatName}`} className="nodo-wear" key={`h-${hatName}`} />}
         {propName && <Layer name={`prop_${propName}`} className="nodo-wear" key={`p-${propName}`} />}
+      </g>
       </g>
     </svg>
   )

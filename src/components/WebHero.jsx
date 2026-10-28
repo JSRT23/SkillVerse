@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { motion, useInView, useReducedMotion } from "motion/react"
+import { MotionConfig, motion, useInView, useReducedMotion } from "motion/react"
 import { useNavigate } from "react-router"
 import Nodo from "./Nodo"
 import { CategoryIcon } from "./ui"
@@ -82,7 +82,7 @@ export default function WebHero({ categories = [] }) {
       ? {}
       : { initial: { pathLength: 0, opacity: 0 }, animate: { pathLength: 1, opacity: 1 }, transition: { duration: 1.1, delay, ease: "easeInOut" } }
 
-  const mood = moving && !reduced ? "walk" : cheer ? "celebrate" : "happy"
+  const mood = moving ? "walk" : cheer ? "celebrate" : "happy"
 
   return (
     <div ref={box} className="relative mx-auto aspect-square w-full max-w-[580px] select-none">
@@ -133,6 +133,7 @@ export default function WebHero({ categories = [] }) {
           )}
       </svg>
 
+      <MotionConfig reducedMotion="never">
       {/* Nodo camina por la telaraña */}
       <motion.div
         className="pointer-events-none absolute z-20"
@@ -151,6 +152,7 @@ export default function WebHero({ categories = [] }) {
           title={active ? `Nodo con el vestuario de ${active.name}` : "Nodo"}
         />
       </motion.div>
+      </MotionConfig>
 
       {/* nodos de categoría */}
       {nodes.map((n, i) => {

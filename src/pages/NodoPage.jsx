@@ -101,7 +101,7 @@ export default function NodoPage() {
         <div className="relative grid min-h-[440px] place-items-center">
           <div className="absolute h-80 w-80 rounded-full blur-3xl transition-colors duration-700" style={{ background: `${current?.color ?? "#7C5CFF"}45` }} aria-hidden />
           <div className="relative w-[min(400px,82vw)]">
-            <Nodo size="100%" category={cat} subcategory={sub} mood={mood} track title={current ? `Nodo vestido para ${current.name}` : "Nodo"} />
+            <Nodo size="100%" category={cat} subcategory={sub} mood={mood} stroll track title={current ? `Nodo vestido para ${current.name}` : "Nodo"} />
           </div>
           {current && (
             <Link to={`/categoria/${current.slug}${sub ? `?sub=${sub}` : ""}`} className="btn-ghost relative">
@@ -120,7 +120,7 @@ export default function NodoPage() {
           {TRICKS.map((t, i) => (
             <motion.div key={t.title} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: (i % 3) * 0.06 }}
               className="card flex items-center gap-4 p-5">
-              <Nodo size={84} mood={t.mood} title="" className="shrink-0" />
+              <Nodo size={84} mood={t.mood} stroll title="" className="shrink-0" />
               <div>
                 <h3 className="font-display text-lg font-semibold">{t.title}</h3>
                 <p className="mt-1 text-sm leading-relaxed text-muted">{t.text}</p>
