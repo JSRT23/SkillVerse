@@ -1,287 +1,258 @@
-// SkillVerse crawler: reads SKILL.md files from the GitHub repos listed in `sources`,
-// extracts metadata, classifies them and stores repos, skills and daily star snapshots.
+// SkillVerse — rastreador v2
+// phase "discover": busca repos en GitHub por temas y rangos de estrellas y los encola.
+// phase "crawl": lista los archivos de cada repo (jsDelivr, con GitHub como respaldo),
+// lee cada SKILL.md y guarda las skills. La clasificación la hace classify-skills.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { parse as parseYaml } from "npm:yaml@2";
+import { encodePath, IGNORED, parseSkillMd, SCRIPT_EXT } from "../_shared/skillmd.ts";
 
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  { auth: { persistSession: false } },
-);
+const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+  auth: { persistSession: false },
+});
 const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN");
+const TIME_BUDGET_MS = 40_000;
+// Supabase limita ~2 s de CPU por ejecución: lotes chicos y tope de archivos procesados
+const MAX_SKILLS_PER_REPO = 150;
+const MAX_FILES_PER_REPO = 25_000;
+const MAX_FILES_PER_RUN = 40_000;
+const NEW_SKILLS_PER_REPO_RUN = 40; // lo que falte se completa en la siguiente pasada
 
-type Category = { id: number; slug: string; keywords: string[]; sort_order: number };
-type TreeItem = { path: string; type: "blob" | "tree"; sha: string };
+type Source = { id: number; full_name: string; repo_id: number; default_branch: string; trust: string };
+type FileEntry = { path: string; hash: string };
 
-const reservedSlugs = new Set<string>(); // reset on every run
-const SCRIPT_EXT = /\.(py|sh|bash|js|mjs|cjs|ts|rb|ps1|go)$/i;
-const IGNORED = /(^|\/)(node_modules|\.git|\.github|template|templates|test|tests|fixtures|examples?)\//i;
+const rate = { core: Infinity, search: Infinity };
 
-function gh(path: string) {
+async function gh(path: string) {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "skillverse-crawler",
     "X-GitHub-Api-Version": "2022-11-28",
   };
   if (GITHUB_TOKEN) headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
-  return fetch(`https://api.github.com${path}`, { headers });
+  const res = await fetch(`https://api.github.com${path}`, { headers });
+  const remaining = Number(res.headers.get("x-ratelimit-remaining"));
+  const resource = res.headers.get("x-ratelimit-resource");
+  if (!Number.isNaN(remaining) && (resource === "core" || resource === "search")) rate[resource] = remaining;
+  return res;
 }
 
-function slugify(s: string) {
-  return s
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80);
-}
-
-function encodePath(p: string) {
-  return p.split("/").map(encodeURIComponent).join("/");
-}
-
-function parseSkillMd(md: string) {
-  let meta: Record<string, unknown> = {};
-  let body = md;
-  const m = md.match(/^\uFEFF?---\s*\r?\n([\s\S]*?)\r?\n---\s*(?:\r?\n|$)/);
-  if (m) {
-    body = md.slice(m[0].length);
-    try {
-      const parsed = parseYaml(m[1]);
-      if (parsed && typeof parsed === "object") meta = parsed as Record<string, unknown>;
-    } catch {
-      for (const line of m[1].split(/\r?\n/)) {
-        const kv = line.match(/^([A-Za-z_-]+):\s*(.*)$/);
-        if (kv) meta[kv[1]] = kv[2].replace(/^["']|["']$/g, "");
-      }
-    }
-  }
-  const str = (v: unknown) => (typeof v === "string" ? v.trim() : undefined);
-  let description = str(meta.description) ?? "";
-  if (!description) {
-    const para = body
-      .split(/\r?\n\s*\r?\n/)
-      .map((p) => p.trim())
-      .find((p) => p && !p.startsWith("#") && !p.startsWith("```"));
-    description = (para ?? "").replace(/[*_`>#\[\]]/g, "").replace(/\s+/g, " ");
-  }
-  return {
-    name: str(meta.name),
-    description: description.replace(/\s+/g, " ").slice(0, 600),
-    license: str(meta.license),
-  };
-}
-
-// Keyword scoring: words in the skill name/folder count 3x, description words 1x.
-function classify(name: string, description: string, categories: Category[]) {
-  const tokenize = (t: string) => new Set(t.toLowerCase().split(/[^a-z0-9+#.]+/).filter(Boolean));
-  const nameWords = tokenize(name);
-  const descWords = tokenize(description);
-  let best: Category | undefined;
-  let bestScore = 0;
-  for (const c of categories) {
-    if (!c.keywords.length) continue;
-    const score = c.keywords.reduce(
-      (n, k) => n + (nameWords.has(k) ? 3 : 0) + (descWords.has(k) ? 1 : 0),
-      0,
-    );
-    if (score > bestScore || (score === bestScore && score > 0 && best && c.sort_order < best.sort_order)) {
-      best = c;
-      bestScore = score;
-    }
-  }
-  return (best ?? categories.find((c) => c.slug === "other"))?.id ?? null;
-}
-
-async function pool<T, R>(items: T[], size: number, fn: (t: T) => Promise<R>) {
-  const out: R[] = [];
+async function pool<T>(items: T[], size: number, fn: (t: T) => Promise<void>) {
   let i = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(size, items.length) }, async () => {
-      while (i < items.length) {
-        const idx = i++;
-        out[idx] = await fn(items[idx]);
-      }
-    }),
-  );
-  return out;
+  await Promise.all(Array.from({ length: Math.min(size, items.length) }, async () => {
+    while (i < items.length) await fn(items[i++]);
+  }));
 }
 
-async function crawlSource(
-  source: { id: number; full_name: string; trust: string },
-  categories: Category[],
-) {
-  const repoRes = await gh(`/repos/${source.full_name}`);
-  if (!repoRes.ok) throw new Error(`GitHub ${repoRes.status} al leer ${source.full_name}`);
-  const r = await repoRes.json();
+// ---------------- Descubrimiento ----------------
+async function discover(started: number) {
+  const maxCalls = GITHUB_TOKEN ? 25 : 8;
+  const { data: queries, error } = await supabase
+    .from("discovery_queries")
+    .select("id, query, next_page")
+    .eq("enabled", true)
+    .lte("next_run_at", new Date().toISOString())
+    .order("priority")
+    .order("next_run_at")
+    .limit(maxCalls);
+  if (error) throw error;
 
-  const { error: repoErr } = await supabase.from("repos").upsert({
-    id: r.id,
-    full_name: r.full_name,
-    owner: r.owner.login,
-    owner_avatar_url: r.owner.avatar_url,
-    name: r.name,
-    description: r.description,
-    html_url: r.html_url,
-    homepage: r.homepage || null,
-    default_branch: r.default_branch,
-    stars: r.stargazers_count,
-    forks: r.forks_count,
-    license: r.license?.spdx_id && r.license.spdx_id !== "NOASSERTION" ? r.license.spdx_id : null,
-    topics: r.topics ?? [],
-    trust: source.trust,
-    pushed_at: r.pushed_at,
-  });
-  if (repoErr) throw repoErr;
+  let calls = 0, repos = 0;
+  for (const q of queries ?? []) {
+    if (Date.now() - started > TIME_BUDGET_MS || rate.search <= 1) break;
+    const res = await gh(`/search/repositories?q=${encodeURIComponent(q.query)}&sort=stars&order=desc&per_page=100&page=${q.next_page}`);
+    calls++;
+    if (res.status === 403 || res.status === 429) { rate.search = 0; break; }
+    if (!res.ok) {
+      await supabase.from("discovery_queries").update({ last_run_at: new Date().toISOString(), next_run_at: new Date(Date.now() + 3600_000).toISOString() }).eq("id", q.id);
+      continue;
+    }
+    const body = await res.json();
+    const items = (body.items ?? []).map((r: any) => ({
+      repo_id: r.id, full_name: r.full_name, stars: r.stargazers_count, forks: r.forks_count,
+      description: r.description?.slice(0, 500) ?? null, default_branch: r.default_branch,
+      owner_avatar_url: r.owner?.avatar_url, topics: r.topics ?? [], homepage: r.homepage,
+      license: r.license?.spdx_id && r.license.spdx_id !== "NOASSERTION" ? r.license.spdx_id : null,
+      pushed_at: r.pushed_at, fork: r.fork, archived: r.archived,
+    }));
+    if (items.length) {
+      const { data: n, error: e } = await supabase.rpc("apply_discovery", { p_items: items, p_via: q.query });
+      if (e) throw e;
+      repos += n ?? 0;
+    }
+    const total = Math.min(body.total_count ?? 0, 1000);
+    const lastPage = Math.max(1, Math.ceil(total / 100));
+    const done = q.next_page >= lastPage || items.length < 100;
+    await supabase.from("discovery_queries").update({
+      total_count: body.total_count ?? null,
+      last_run_at: new Date().toISOString(),
+      next_page: done ? 1 : q.next_page + 1,
+      next_run_at: new Date(Date.now() + (done ? 12 * 3600_000 : 0)).toISOString(),
+    }).eq("id", q.id);
+  }
+  return { search_calls: calls, repos_seen: repos };
+}
 
-  await supabase.from("star_snapshots").upsert(
-    { repo_id: r.id, captured_on: new Date().toISOString().slice(0, 10), stars: r.stargazers_count },
-    { onConflict: "repo_id,captured_on" },
-  );
+// ---------------- Rastreo ----------------
+async function listFiles(src: Source): Promise<{ files: FileEntry[]; complete: boolean }> {
+  const res = await fetch(`https://data.jsdelivr.com/v1/packages/gh/${src.full_name}@${encodeURIComponent(src.default_branch)}?structure=flat`);
+  if (res.ok) {
+    const body = await res.json();
+    return { files: (body.files ?? []).map((f: any) => ({ path: String(f.name).replace(/^\//, ""), hash: f.hash })), complete: true };
+  }
+  // Respaldo: árbol de Git (consume cupo de la API de GitHub)
+  if (rate.core > 5) {
+    const t = await gh(`/repos/${src.full_name}/git/trees/${encodeURIComponent(src.default_branch)}?recursive=1`);
+    if (t.ok) {
+      const tree = await t.json();
+      const files = (tree.tree ?? []).filter((x: any) => x.type === "blob").map((x: any) => ({ path: x.path, hash: x.sha }));
+      return { files, complete: !tree.truncated };
+    }
+    throw new Error(`GitHub ${t.status} al listar ${src.full_name}`);
+  }
+  throw new Error(`jsDelivr ${res.status} y sin cupo en GitHub para ${src.full_name}`);
+}
 
-  const treeRes = await gh(`/repos/${r.full_name}/git/trees/${encodeURIComponent(r.default_branch)}?recursive=1`);
-  if (!treeRes.ok) throw new Error(`GitHub ${treeRes.status} al leer el árbol de ${r.full_name}`);
-  const tree = await treeRes.json();
-  const items: TreeItem[] = tree.tree ?? [];
-  const blobs = items.filter((t) => t.type === "blob");
+async function fetchText(src: Source, path: string) {
+  const urls = [
+    `https://cdn.jsdelivr.net/gh/${src.full_name}@${encodeURIComponent(src.default_branch)}/${encodePath(path)}`,
+    `https://raw.githubusercontent.com/${src.full_name}/${encodeURIComponent(src.default_branch)}/${encodePath(path)}`,
+  ];
+  for (const u of urls) {
+    const r = await fetch(u);
+    if (r.ok) return await r.text();
+  }
+  return null;
+}
 
-  const skillFiles = blobs.filter(
-    (b) => (b.path === "SKILL.md" || b.path.endsWith("/SKILL.md")) && !IGNORED.test(b.path),
-  );
+/** Cuenta archivos y detecta scripts bajo cada carpeta de skill en una sola pasada. */
+function folderStats(files: FileEntry[], dirs: Set<string>) {
+  const stats = new Map<string, { count: number; scripts: boolean }>();
+  for (const d of dirs) stats.set(d, { count: 0, scripts: false });
+  const hasRoot = dirs.has("");
+  for (const f of files) {
+    const isScript = SCRIPT_EXT.test(f.path);
+    if (hasRoot) { const st = stats.get("")!; st.count++; st.scripts ||= isScript; }
+    let idx = f.path.lastIndexOf("/");
+    while (idx > 0) {
+      const st = stats.get(f.path.slice(0, idx));
+      if (st) { st.count++; st.scripts ||= isScript; }
+      idx = f.path.lastIndexOf("/", idx - 1);
+    }
+  }
+  return stats;
+}
 
-  const { data: existingRows } = await supabase
-    .from("skills")
-    .select("id, path, content_sha, slug, category_locked")
-    .eq("repo_id", r.id);
-  const existing = new Map((existingRows ?? []).map((e) => [e.path, e]));
+async function crawlSource(src: Source, budget: { files: number }) {
+  const { files, complete } = await listFiles(src);
+  if (files.length > MAX_FILES_PER_REPO) {
+    await supabase.rpc("skip_source", { p_source_id: src.id, p_reason: `Repositorio demasiado grande (${files.length} archivos)` });
+    return { found: 0, new: 0, changed: 0 };
+  }
+  budget.files += files.length;
 
-  let added = 0;
-  const foundPaths: string[] = [];
+  const skillFiles = files
+    .filter((f) => (f.path === "SKILL.md" || f.path.endsWith("/SKILL.md")) && !IGNORED.test(f.path))
+    .slice(0, MAX_SKILLS_PER_REPO);
+  const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
+  const stats = folderStats(files, new Set(skillFiles.map((f) => dirOf(f.path))));
 
-  await pool(skillFiles, 8, async (file) => {
-    const dir = file.path.includes("/") ? file.path.slice(0, file.path.lastIndexOf("/")) : "";
-    foundPaths.push(dir);
-    const prefix = dir ? dir + "/" : "";
-    const inDir = blobs.filter((b) => b.path.startsWith(prefix));
-    const hasScripts = inDir.some((b) => SCRIPT_EXT.test(b.path));
+  const { data: existingRows } = await supabase.from("skills").select("path, content_sha").eq("repo_id", src.repo_id);
+  const existing = new Map((existingRows ?? []).map((e) => [e.path, e.content_sha]));
+
+  const out: Record<string, unknown>[] = [];
+  let fetched = 0;
+  let partial = false;
+  await pool(skillFiles, 6, async (file) => {
+    const dir = dirOf(file.path);
+    const st = stats.get(dir)!;
+    const base = {
+      path: dir,
+      content_sha: file.hash,
+      has_scripts: st.scripts,
+      file_count: st.count,
+      html_url: `https://github.com/${src.full_name}/tree/${encodeURIComponent(src.default_branch)}/${encodePath(dir)}`,
+      raw_url: `https://raw.githubusercontent.com/${src.full_name}/${encodeURIComponent(src.default_branch)}/${encodePath(file.path)}`,
+    };
     const prev = existing.get(dir);
-
-    const htmlUrl = `${r.html_url}/tree/${encodeURIComponent(r.default_branch)}/${encodePath(dir)}`;
-    const rawUrl = `https://raw.githubusercontent.com/${r.full_name}/${encodeURIComponent(r.default_branch)}/${encodePath(file.path)}`;
-
-    if (prev && prev.content_sha === file.sha) {
-      await supabase
-        .from("skills")
-        .update({ has_scripts: hasScripts, file_count: inDir.length, html_url: htmlUrl, raw_url: rawUrl })
-        .eq("id", prev.id);
+    if (prev === file.hash) { out.push(base); return; }
+    if (fetched >= NEW_SKILLS_PER_REPO_RUN) {
+      partial = true;
+      if (prev !== undefined) out.push({ ...base, content_sha: prev }); // se conserva hasta la próxima pasada
       return;
     }
-
-    const rawRes = await fetch(rawUrl);
-    if (!rawRes.ok) return;
-    const parsed = parseSkillMd(await rawRes.text());
-    const folder = dir.split("/").pop() || r.name;
+    fetched++;
+    const text = await fetchText(src, file.path);
+    if (!text) return;
+    const parsed = parseSkillMd(text);
+    if (!parsed) return; // sin frontmatter válido: no es una skill real
+    const folder = dir.split("/").pop() || src.full_name.split("/")[1];
     const name = (parsed.name || folder).slice(0, 120);
-
-    let slug = prev?.slug;
-    if (!slug) {
-      const candidates = [
-        slugify(`${r.owner.login}-${name}`),
-        slugify(`${r.owner.login}-${r.name}-${name}`),
-        slugify(`${r.owner.login}-${r.name}-${dir}`),
-      ];
-      for (const c of candidates) {
-        if (reservedSlugs.has(c)) continue;
-        reservedSlugs.add(c);
-        const { count } = await supabase.from("skills").select("id", { count: "exact", head: true }).eq("slug", c);
-        if (!count) { slug = c; break; }
-      }
-      slug ??= `${candidates[2]}-${file.sha.slice(0, 6)}`;
-      reservedSlugs.add(slug);
-    }
-
-    const row: Record<string, unknown> = {
-        repo_id: r.id,
-        path: dir,
-        slug,
-        name,
-        description: parsed.description,
-        license: parsed.license ?? null,
-        has_scripts: hasScripts,
-        file_count: inDir.length,
-        content_sha: file.sha,
-        html_url: htmlUrl,
-        raw_url: rawUrl,
-        install_command: `npx skills add ${r.full_name} --skill ${name}`,
-    };
-    if (!prev?.category_locked) {
-      row.category_id = classify(`${name} ${folder.replace(/[-_]/g, " ")}`, parsed.description, categories);
-    }
-    const { error } = await supabase.from("skills").upsert(row, { onConflict: "repo_id,path" });
-    if (error) throw error;
-    if (!prev) added++;
+    out.push({
+      ...base,
+      name,
+      description: parsed.description,
+      license: parsed.license ?? null,
+      install_command: `npx skills add ${src.full_name} --skill ${name}`,
+    });
   });
 
-  // Remove skills that no longer exist in the repo (only when we saw the full tree)
-  if (!tree.truncated) {
-    const gone = [...existing.keys()].filter((p) => !foundPaths.includes(p));
-    if (gone.length) await supabase.from("skills").delete().eq("repo_id", r.id).in("path", gone);
+  const { data, error } = await supabase.rpc("upsert_repo_skills", { p_source_id: src.id, p_skills: out, p_complete: complete && !partial });
+  if (error) throw error;
+  if (partial) {
+    // vuelve a la cola para terminar las skills que faltan
+    await supabase.from("sources").update({ status: "pending", crawl_claimed_at: null }).eq("id", src.id);
   }
+  return { found: out.length, ...(data as { new: number; changed: number }) };
+}
 
-  return { found: skillFiles.length, added };
+async function crawl(started: number) {
+  const { data: batch, error } = await supabase.rpc("claim_crawl_batch", { p_limit: 5 });
+  if (error) throw error;
+  let scanned = 0, found = 0, added = 0, failed = 0;
+  const errors: string[] = [];
+  const budget = { files: 0 };
+  await pool((batch ?? []) as Source[], 2, async (src) => {
+    if (Date.now() - started > TIME_BUDGET_MS || budget.files > MAX_FILES_PER_RUN) {
+      await supabase.from("sources").update({ crawl_claimed_at: null }).eq("id", src.id);
+      return;
+    }
+    try {
+      const r = await crawlSource(src, budget);
+      scanned++; found += r.found; added += r.new;
+    } catch (e) {
+      failed++;
+      const msg = (e as { message?: string })?.message ?? String(e);
+      if (errors.length < 5) errors.push(`${src.full_name}: ${msg}`);
+      await supabase.rpc("mark_source_error", { p_source_id: src.id, p_error: msg });
+    }
+  });
+  if (added > 0) await supabase.rpc("mark_duplicates");
+  return { repos_scanned: scanned, skills_found: found, skills_new: added, failed, errors };
 }
 
 Deno.serve(async (req) => {
-  const secret = req.headers.get("x-crawl-secret") ?? "";
-  const { data: ok } = await supabase.rpc("verify_crawl_secret", { p_secret: secret });
+  const { data: ok } = await supabase.rpc("verify_crawl_secret", { p_secret: req.headers.get("x-crawl-secret") ?? "" });
   if (!ok) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
-  reservedSlugs.clear();
 
+  const body = await req.json().catch(() => ({}));
+  const phase = body.phase ?? "crawl";
+  const started = Date.now();
   const { data: run } = await supabase.from("crawl_runs").insert({}).select("id").single();
-  const { data: categories } = await supabase.from("categories").select("id, slug, keywords, sort_order");
-  const { data: sources } = await supabase
-    .from("sources")
-    .select("id, full_name, trust")
-    .eq("enabled", true)
-    .order("id");
 
-  let scanned = 0, found = 0, added = 0;
-  const errors: string[] = [];
-
-  for (const source of sources ?? []) {
-    try {
-      const res = await crawlSource(source, (categories ?? []) as Category[]);
-      scanned++;
-      found += res.found;
-      added += res.added;
-      await supabase.from("sources")
-        .update({ last_crawled_at: new Date().toISOString(), last_error: null })
-        .eq("id", source.id);
-    } catch (e) {
-      const msg = (e as { message?: string })?.message ?? String(e);
-      errors.push(`${source.full_name}: ${msg}`);
-      await supabase.from("sources")
-        .update({ last_crawled_at: new Date().toISOString(), last_error: msg.slice(0, 500) })
-        .eq("id", source.id);
-    }
+  try {
+    const result = phase === "discover" ? await discover(started) : await crawl(started);
+    const r = result as Record<string, number | string[]>;
+    await supabase.from("crawl_runs").update({
+      finished_at: new Date().toISOString(),
+      status: (r.failed as number) > 0 ? "partial" : "success",
+      repos_scanned: (r.repos_scanned as number) ?? (r.repos_seen as number) ?? 0,
+      skills_found: (r.skills_found as number) ?? 0,
+      skills_new: (r.skills_new as number) ?? 0,
+      error: Array.isArray(r.errors) && r.errors.length ? `${phase}: ${r.errors.join("\n")}`.slice(0, 2000) : null,
+    }).eq("id", run?.id);
+    return Response.json({ phase, ...result, rate, ms: Date.now() - started });
+  } catch (e) {
+    const msg = (e as { message?: string })?.message ?? String(e);
+    await supabase.from("crawl_runs").update({ finished_at: new Date().toISOString(), status: "failed", error: `${phase}: ${msg}`.slice(0, 2000) }).eq("id", run?.id);
+    return Response.json({ phase, error: msg }, { status: 500 });
   }
-
-  const { data: duplicates } = await supabase.rpc("mark_duplicates");
-
-  const status = errors.length === 0 ? "success" : scanned > 0 ? "partial" : "failed";
-  await supabase.from("crawl_runs").update({
-    finished_at: new Date().toISOString(),
-    status,
-    repos_scanned: scanned,
-    skills_found: found,
-    skills_new: added,
-    error: errors.length ? errors.join("\n").slice(0, 2000) : null,
-  }).eq("id", run?.id);
-
-  return new Response(
-    JSON.stringify({ status, repos_scanned: scanned, skills_found: found, skills_new: added, duplicates_changed: duplicates, errors }),
-    { headers: { "Content-Type": "application/json" } },
-  );
 });

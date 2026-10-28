@@ -1,38 +1,45 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { Route, Routes, useLocation, useNavigate, useParams } from "react-router"
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router"
 import { Footer, Navbar } from "./components/Layout"
 import CommandPalette from "./components/CommandPalette"
 import Modal from "./components/Modal"
+import Ocho from "./components/Ocho"
 import SkillDetail from "./components/SkillDetail"
 import Toasts from "./components/Toasts"
+import { Skeleton } from "./components/ui"
+import { useSkill } from "./hooks/useCatalog"
 import { useRealtime } from "./hooks/useRealtime"
 import { SearchContext } from "./searchContext"
 import Home from "./pages/Home"
-import { useSkill } from "./pages/SkillPage"
 import NotFound from "./pages/NotFound"
-import Mascot from "./components/Mascot"
 
 const Explore = lazy(() => import("./pages/Explore"))
 const Categories = lazy(() => import("./pages/Categories").then((m) => ({ default: m.Categories })))
 const Category = lazy(() => import("./pages/Categories").then((m) => ({ default: m.Category })))
 const SkillPage = lazy(() => import("./pages/SkillPage"))
 const Guide = lazy(() => import("./pages/Guide"))
-const Nodo = lazy(() => import("./pages/Nodo"))
+const OchoPage = lazy(() => import("./pages/OchoPage"))
 
 /** Ficha de una skill abierta como modal sobre la página donde estabas. */
 function SkillModal() {
   const { slug } = useParams()
   const navigate = useNavigate()
-  const { skill, isLoading } = useSkill(slug)
+  const { data: skill, isLoading } = useSkill(slug)
   const close = useCallback(() => navigate(-1), [navigate])
 
   return (
     <Modal onClose={close} label={skill ? `Skill ${skill.name}` : "Skill"}>
-      <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:max-h-[calc(100dvh-3rem)] sm:p-9">
-        {isLoading && <p className="p-10 text-center text-haze">Cargando…</p>}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        {isLoading && (
+          <div className="space-y-4 p-8">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-12 w-2/3" />
+            <Skeleton className="h-64" />
+          </div>
+        )}
         {!isLoading && !skill && <NotFound what="skill" />}
-        {skill && <SkillDetail skill={skill} compact />}
+        {skill && <SkillDetail skill={skill} inModal />}
       </div>
     </Modal>
   )
@@ -41,7 +48,7 @@ function SkillModal() {
 function PageLoader() {
   return (
     <div className="grid min-h-[60vh] place-items-center">
-      <Mascot size={110} mood="search" />
+      <Ocho size={120} mood="curious" />
     </div>
   )
 }
@@ -49,10 +56,10 @@ function PageLoader() {
 function Page({ children }) {
   return (
     <motion.main
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.28, ease: "easeOut" }}
+      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
     >
       <Suspense fallback={<PageLoader />}>{children}</Suspense>
     </motion.main>
@@ -63,14 +70,14 @@ export default function App() {
   const location = useLocation()
   const background = location.state?.background
   const [searchOpen, setSearchOpen] = useState(false)
-  const { toasts, dismiss, newIds } = useRealtime()
+  const { toast, dismiss, newIds } = useRealtime()
   const openSearch = useCallback(() => setSearchOpen(true), [])
 
   // Ctrl/⌘ + K o "/" abren el buscador
   useEffect(() => {
     const onKey = (e) => {
       const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)
-      if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || (e.key === "/" && !typing)) {
+      if ((e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) || (e.key === "/" && !typing)) {
         e.preventDefault()
         setSearchOpen(true)
       }
@@ -87,11 +94,11 @@ export default function App() {
 
   return (
     <SearchContext.Provider value={openSearch}>
-      <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-full focus:bg-amber focus:px-4 focus:py-2 focus:text-ink-deep">
+      <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-full focus:bg-amber focus:px-4 focus:py-2 focus:text-night">
         Saltar al contenido
       </a>
       <Navbar onSearch={openSearch} />
-      <div id="contenido">
+      <div id="contenido" className="min-h-[70vh]">
         <AnimatePresence mode="wait">
           <Routes location={pageLocation} key={pageLocation.pathname}>
             <Route path="/" element={<Page><Home newIds={newIds} /></Page>} />
@@ -100,7 +107,8 @@ export default function App() {
             <Route path="/categoria/:slug" element={<Page><Category newIds={newIds} /></Page>} />
             <Route path="/skill/:slug" element={<Page><SkillPage /></Page>} />
             <Route path="/guia" element={<Page><Guide /></Page>} />
-            <Route path="/nodo" element={<Page><Nodo /></Page>} />
+            <Route path="/ocho" element={<Page><OchoPage /></Page>} />
+            <Route path="/nodo" element={<Navigate to="/ocho" replace />} />
             <Route path="*" element={<Page><NotFound /></Page>} />
           </Routes>
         </AnimatePresence>
@@ -116,7 +124,7 @@ export default function App() {
 
       <Footer />
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <Toasts toasts={toasts} onDismiss={dismiss} />
+      <Toasts toast={toast} onDismiss={dismiss} />
     </SearchContext.Provider>
   )
 }

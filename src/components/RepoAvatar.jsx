@@ -8,8 +8,8 @@ export function RepoAvatar({ skill, owner, src, size = 24 }) {
   if (!url || failed) {
     return (
       <span
-        className="inline-grid shrink-0 place-items-center rounded-full bg-dusk-2 font-display text-[10px] font-bold text-amber"
-        style={{ width: size, height: size }}
+        className="inline-grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand to-orchid font-display font-bold text-white"
+        style={{ width: size, height: size, fontSize: Math.max(8, size * 0.45) }}
         aria-hidden
       >
         {name.charAt(0).toUpperCase()}

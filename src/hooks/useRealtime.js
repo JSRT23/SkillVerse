@@ -3,40 +3,54 @@ import { useQueryClient } from "@tanstack/react-query"
 import { subscribeToCatalog } from "../lib/supabase"
 
 /**
- * Escucha cambios en vivo. Refresca el catálogo (agrupando ráfagas de eventos)
- * y devuelve avisos para mostrar cuando llega una skill nueva.
+ * Escucha las skills nuevas en vivo. Como pueden llegar cientos por minuto,
+ * agrupa los avisos (uno cada pocos segundos) y refresca los datos con calma.
  */
 export function useRealtime() {
   const queryClient = useQueryClient()
-  const [toasts, setToasts] = useState([])
+  const [toast, setToast] = useState(null)
   const [newIds, setNewIds] = useState(() => new Set())
-  const timer = useRef(null)
+  const buffer = useRef([])
+  const flushTimer = useRef(null)
+  const refreshTimer = useRef(null)
 
   useEffect(() => {
-    const refresh = () => {
-      clearTimeout(timer.current)
-      timer.current = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["catalog"] })
-        queryClient.invalidateQueries({ queryKey: ["repo-trends"] })
-        queryClient.invalidateQueries({ queryKey: ["sync-status"] })
-      }, 1500)
+    const flush = () => {
+      flushTimer.current = null
+      const batch = buffer.current
+      buffer.current = []
+      if (!batch.length) return
+      setNewIds((prev) => {
+        const next = new Set(prev)
+        batch.forEach((e) => next.add(e.skill_id))
+        return next
+      })
+      setToast({ id: Date.now(), count: batch.length, latest: batch[batch.length - 1] })
     }
 
     const stop = subscribeToCatalog((event) => {
-      refresh()
-      if (event.table === "skills" && event.type === "INSERT" && event.record?.name) {
-        const id = `${event.record.id}-${Date.now()}`
-        setNewIds((prev) => new Set(prev).add(event.record.id))
-        setToasts((prev) => [...prev.slice(-2), { id, name: event.record.name, slug: event.record.slug }])
-        setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 7000)
+      if (event.kind !== "skill_added") return
+      buffer.current.push(event)
+      if (!flushTimer.current) flushTimer.current = setTimeout(flush, 4000)
+      if (!refreshTimer.current) {
+        refreshTimer.current = setTimeout(() => {
+          refreshTimer.current = null
+          for (const key of ["newest", "counts", "sync", "skills", "skills-count"]) queryClient.invalidateQueries({ queryKey: [key] })
+        }, 20_000)
       }
     })
     return () => {
-      clearTimeout(timer.current)
+      clearTimeout(flushTimer.current)
+      clearTimeout(refreshTimer.current)
       stop()
     }
   }, [queryClient])
 
-  const dismiss = (id) => setToasts((prev) => prev.filter((t) => t.id !== id))
-  return { toasts, dismiss, newIds }
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 6500)
+    return () => clearTimeout(t)
+  }, [toast])
+
+  return { toast, dismiss: () => setToast(null), newIds }
 }

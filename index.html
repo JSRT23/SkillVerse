@@ -4,9 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SkillVerse — directorio de Agent Skills</title>
-    <meta name="description" content="Explora las Agent Skills (SKILL.md) de GitHub: qué hacen, cómo se instalan y cuáles son las más populares. Actualizado en tiempo real." />
-    <meta name="theme-color" content="#15123A" />
+    <meta name="description" content="Miles de Agent Skills (SKILL.md) de GitHub, clasificadas por categoría y subcategoría con IA. Qué hace cada una, cuántas estrellas tiene y cómo instalarla." />
+    <meta name="theme-color" content="#0C0A20" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      // Aplica el tema antes de pintar para evitar el parpadeo
+      try {
+        var t = localStorage.getItem("skillverse-theme");
+        if (t !== "day" && t !== "night") t = matchMedia("(prefers-color-scheme: light)").matches ? "day" : "night";
+        document.documentElement.dataset.theme = t;
+      } catch (e) { document.documentElement.dataset.theme = "night"; }
+    </script>
   </head>
   <body>
     <div id="root"></div>

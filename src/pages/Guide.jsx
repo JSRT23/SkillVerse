@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { ChevronDown, FileCode2, FolderTree, ShieldCheck, Wand2 } from "lucide-react"
-import Mascot from "../components/Mascot"
+import Ocho from "../components/Ocho"
 import { CommandLine } from "../components/ui"
 
 const AGENTS = [
@@ -29,8 +29,16 @@ const FAQ = [
     a: "GitHub da estrellas a repositorios, no a carpetas. Todas las skills de un mismo repositorio comparten su número de estrellas.",
   },
   {
+    q: "¿Cómo se clasifican las skills?",
+    a: "Un modelo de IA convierte la descripción de cada skill en un vector que representa su significado y la compara con la descripción de cada subcategoría. Gana la más parecida, con un pequeño refuerzo si el nombre contiene palabras clave. Por eso “pytest” cae en Pruebas unitarias aunque no diga “testing”.",
+  },
+  {
+    q: "¿Qué hace la búsqueda inteligente?",
+    a: "Combina la búsqueda por palabras con una búsqueda por significado. Si escribes “revisar mi código antes de publicarlo”, encuentra skills de revisión de código aunque no usen esas palabras exactas, y funciona aunque escribas en español y la skill esté en inglés.",
+  },
+  {
     q: "¿Cada cuánto se actualiza SkillVerse?",
-    a: "El rastreador revisa los repositorios cada 30 minutos. Cuando encuentra una skill nueva, aparece en el sitio sin que tengas que recargar.",
+    a: "Sin parar: un rastreador descubre repositorios nuevos en GitHub cada dos minutos y revisa la cola cada 20 segundos. Cuando aparece una skill nueva, la ves en el sitio sin recargar.",
   },
 ]
 
@@ -56,35 +64,35 @@ export default function Guide() {
     <div className="container-page max-w-4xl pt-10">
       <div className="flex flex-col-reverse items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-4xl font-bold sm:text-5xl">Guía de Agent Skills</h1>
-          <p className="mt-3 max-w-xl text-lg text-haze">Qué son, cómo se instalan en cada agente y cómo usarlas sin riesgos.</p>
+          <h1 className="text-4xl font-bold sm:text-[3.2rem]" style={{ letterSpacing: "-0.04em" }}>Guía de Agent Skills</h1>
+          <p className="mt-3 max-w-xl text-lg text-muted">Qué son, cómo se instalan en cada agente y cómo usarlas sin riesgos.</p>
         </div>
-        <Mascot size={130} outfit="glasses" accent="#3B82F6" mood="happy" />
+        <Ocho size={140} outfit="paper" accent="#3B82F6" mood="happy" track />
       </div>
 
       <nav aria-label="En esta guía" className="mt-8 flex flex-wrap gap-2">
         {[["que-es", "Qué es"], ["instalar", "Instalar"], ["seguridad", "Seguridad"], ["crear", "Crear la tuya"], ["preguntas", "Preguntas"]].map(([id, label]) => (
-          <a key={id} href={`#${id}`} className="chip border-line bg-dusk/60 px-3.5 py-2 text-sm text-haze hover:text-silk">{label}</a>
+          <a key={id} href={`#${id}`} className="chip border-line bg-elev px-3.5 py-2 text-sm text-muted hover:text-fg">{label}</a>
         ))}
       </nav>
 
       <GuideSection id="que-es" icon={FolderTree} title="Qué es una skill">
         <p>
-          Una skill es una carpeta con un archivo <code className="font-mono text-amber">SKILL.md</code>. Ese archivo tiene un nombre, una descripción de cuándo usarla e instrucciones paso a paso. Puede traer también scripts, plantillas o documentación.
+          Una skill es una carpeta con un archivo <code className="font-mono text-brand">SKILL.md</code>. Ese archivo tiene un nombre, una descripción de cuándo usarla e instrucciones paso a paso. Puede traer también scripts, plantillas o documentación.
         </p>
         <p>
           Es un formato abierto: la misma carpeta funciona en Claude Code, Codex, Copilot, Gemini CLI y otros agentes compatibles.
         </p>
-        <pre className="overflow-x-auto rounded-2xl border border-line bg-ink-deep/80 p-5 font-mono text-[13px] leading-relaxed text-silk/90">{ANATOMY}</pre>
+        <pre className="overflow-x-auto rounded-2xl border border-line bg-[#0c0a20] p-5 font-mono text-[13px] leading-relaxed text-[#e9e6ff]">{ANATOMY}</pre>
       </GuideSection>
 
       <GuideSection id="instalar" icon={Wand2} title="Cómo instalarla">
-        <p>La forma más rápida es la herramienta <code className="font-mono text-amber">skills</code>, que detecta tu agente y copia la skill al lugar correcto:</p>
+        <p>La forma más rápida es la herramienta <code className="font-mono text-brand">skills</code>, que detecta tu agente y copia la skill al lugar correcto:</p>
         <CommandLine command="npx skills add anthropics/skills --skill pdf" />
         <p>También puedes copiar la carpeta a mano. Cada agente busca las skills en una carpeta distinta:</p>
         <div className="overflow-x-auto rounded-2xl border border-line">
           <table className="w-full min-w-[480px] text-left text-sm">
-            <thead className="bg-dusk-2/70 text-haze">
+            <thead className="bg-soft text-muted">
               <tr>
                 <th className="px-4 py-3 font-semibold">Agente</th>
                 <th className="px-4 py-3 font-semibold">Solo un proyecto</th>
@@ -93,16 +101,16 @@ export default function Guide() {
             </thead>
             <tbody className="divide-y divide-line/60">
               {AGENTS.map((a) => (
-                <tr key={a.agent} className="transition-colors hover:bg-dusk-2/40">
+                <tr key={a.agent} className="transition-colors hover:bg-soft">
                   <td className="px-4 py-3 font-semibold">{a.agent}</td>
-                  <td className="px-4 py-3 font-mono text-[13px] text-lagoon">{a.project}</td>
-                  <td className="px-4 py-3 font-mono text-[13px] text-haze">{a.personal}</td>
+                  <td className="px-4 py-3 font-mono text-[13px] text-teal">{a.project}</td>
+                  <td className="px-4 py-3 font-mono text-[13px] text-muted">{a.personal}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="text-sm text-haze">Las rutas pueden cambiar entre versiones; confírmalas en la documentación de tu agente.</p>
+        <p className="text-sm text-muted">Las rutas pueden cambiar entre versiones; confírmalas en la documentación de tu agente.</p>
       </GuideSection>
 
       <GuideSection id="seguridad" icon={ShieldCheck} title="Úsalas con seguridad">
@@ -113,15 +121,15 @@ export default function Guide() {
             "Lee el SKILL.md completo. Si te pide enviar datos a sitios desconocidos o desactivar protecciones, no la instales.",
             "Revisa las actualizaciones: una skill segura hoy puede cambiar mañana.",
           ].map((t) => (
-            <li key={t} className="flex gap-3"><FileCode2 size={18} className="mt-0.5 shrink-0 text-amber" aria-hidden />{t}</li>
+            <li key={t} className="flex gap-3"><FileCode2 size={18} className="mt-0.5 shrink-0 text-amber-deep" aria-hidden />{t}</li>
           ))}
         </ul>
       </GuideSection>
 
       <GuideSection id="crear" icon={Wand2} title="Crea la tuya">
         <p>Solo necesitas una carpeta con un SKILL.md. La descripción es lo más importante: dile al agente qué hace y cuándo usarla.</p>
-        <pre className="overflow-x-auto rounded-2xl border border-line bg-ink-deep/80 p-5 font-mono text-[13px] leading-relaxed text-silk/90">{SKILL_MD}</pre>
-        <p>Si usas Claude, la skill <code className="font-mono text-amber">skill-creator</code> te guía con preguntas y prueba tu skill antes de publicarla.</p>
+        <pre className="overflow-x-auto rounded-2xl border border-line bg-[#0c0a20] p-5 font-mono text-[13px] leading-relaxed text-[#e9e6ff]">{SKILL_MD}</pre>
+        <p>Si usas Claude, la skill <code className="font-mono text-brand">skill-creator</code> te guía con preguntas y prueba tu skill antes de publicarla.</p>
       </GuideSection>
 
       <section id="preguntas" className="scroll-mt-24 pt-14">
@@ -144,10 +152,10 @@ function GuideSection({ id, icon: Icon, title, children }) {
       className="scroll-mt-24 pt-14"
     >
       <h2 className="section-title flex items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-xl bg-violet/20 text-violet"><Icon size={20} aria-hidden /></span>
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/15 text-brand"><Icon size={20} aria-hidden /></span>
         {title}
       </h2>
-      <div className="mt-5 space-y-4 leading-relaxed text-silk/90">{children}</div>
+      <div className="mt-5 space-y-4 leading-relaxed text-fg/90">{children}</div>
     </motion.section>
   )
 }
@@ -155,15 +163,15 @@ function GuideSection({ id, icon: Icon, title, children }) {
 function FaqItem({ q, a }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="panel overflow-hidden">
+    <div className="card overflow-hidden">
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex w-full items-center justify-between gap-4 p-5 text-left font-semibold cursor-pointer">
         {q}
-        <motion.span animate={{ rotate: open ? 180 : 0 }} className="shrink-0 text-amber"><ChevronDown size={18} /></motion.span>
+        <motion.span animate={{ rotate: open ? 180 : 0 }} className="shrink-0 text-brand"><ChevronDown size={18} /></motion.span>
       </button>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}>
-            <p className="px-5 pb-5 leading-relaxed text-haze">{a}</p>
+            <p className="px-5 pb-5 leading-relaxed text-muted">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>

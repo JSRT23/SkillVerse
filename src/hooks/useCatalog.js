@@ -1,62 +1,65 @@
 import { useMemo } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { fetchCatalog, fetchCategories, fetchRepoTrends, fetchSyncStatus } from "../lib/supabase"
+import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query"
+import {
+  catalogCounts, countSkills, fetchRepoTrends, fetchTaxonomy, getSkill, newestSkills,
+  popularSkills, searchSkills, similarSkills, smartSearch, syncStatus,
+} from "../lib/supabase"
 
-const FIVE_MIN = 5 * 60 * 1000
+const MIN = 60 * 1000
+export const PAGE_SIZE = 24
 
-export function useCatalog() {
-  return useQuery({ queryKey: ["catalog"], queryFn: fetchCatalog, staleTime: FIVE_MIN })
-}
+export const useTaxonomy = () => useQuery({ queryKey: ["taxonomy"], queryFn: fetchTaxonomy, staleTime: Infinity })
+export const useCounts = () => useQuery({ queryKey: ["counts"], queryFn: catalogCounts, staleTime: 2 * MIN })
+export const useSyncStatus = () => useQuery({ queryKey: ["sync"], queryFn: syncStatus, refetchInterval: 30_000 })
+export const usePopular = (limit = 9) => useQuery({ queryKey: ["popular", limit], queryFn: () => popularSkills(limit), staleTime: 5 * MIN })
+export const useNewest = (limit = 8) => useQuery({ queryKey: ["newest", limit], queryFn: () => newestSkills(limit), staleTime: MIN })
+export const useRepoTrends = (limit = 8) => useQuery({ queryKey: ["repos", limit], queryFn: () => fetchRepoTrends(limit), staleTime: 5 * MIN })
+export const useSkill = (slug) => useQuery({ queryKey: ["skill", slug], queryFn: () => getSkill(slug), enabled: !!slug, staleTime: 5 * MIN })
+export const useSimilar = (id) => useQuery({ queryKey: ["similar", id], queryFn: () => similarSkills(id, 6), enabled: !!id, staleTime: 10 * MIN })
 
-export function useCategories() {
-  return useQuery({ queryKey: ["categories"], queryFn: fetchCategories, staleTime: Infinity })
-}
-
-export function useRepoTrends() {
-  return useQuery({ queryKey: ["repo-trends"], queryFn: fetchRepoTrends, staleTime: FIVE_MIN })
-}
-
-export function useSyncStatus() {
-  return useQuery({ queryKey: ["sync-status"], queryFn: fetchSyncStatus, refetchInterval: 60_000 })
-}
-
-/** Categorías con su número de skills. */
-export function useCategoriesWithCounts() {
-  const { data: categories = [], ...rest } = useCategories()
-  const { data: skills = [] } = useCatalog()
+/** Taxonomía con conteos por categoría y subcategoría. */
+export function useTaxonomyWithCounts() {
+  const { data: taxonomy = [], ...rest } = useTaxonomy()
+  const { data: counts = [] } = useCounts()
   const data = useMemo(() => {
-    const counts = {}
-    for (const s of skills) counts[s.category_slug] = (counts[s.category_slug] ?? 0) + 1
-    return categories.map((c) => ({ ...c, count: counts[c.slug] ?? 0 }))
-  }, [categories, skills])
+    const byCat = {}, bySub = {}
+    for (const r of counts) {
+      byCat[r.category_slug] = (byCat[r.category_slug] ?? 0) + Number(r.n)
+      if (r.subcategory_slug) bySub[r.subcategory_slug] = Number(r.n)
+    }
+    return taxonomy.map((c) => ({
+      ...c,
+      count: byCat[c.slug] ?? 0,
+      subcategories: c.subcategories.map((s) => ({ ...s, count: bySub[s.slug] ?? 0 })),
+    }))
+  }, [taxonomy, counts])
   return { data, ...rest }
 }
 
-/**
- * Populares: las estrellas son del repo, así que intercalamos skills de los
- * repos con más estrellas para no mostrar 8 del mismo repositorio.
- */
-export function pickPopular(skills, limit = 8) {
-  const byRepo = new Map()
-  for (const s of skills) {
-    if (!byRepo.has(s.repo_full_name)) byRepo.set(s.repo_full_name, [])
-    byRepo.get(s.repo_full_name).push(s)
-  }
-  const repos = [...byRepo.values()].sort((a, b) => b[0].stars - a[0].stars)
-  const out = []
-  for (let i = 0; out.length < limit; i++) {
-    let added = false
-    for (const list of repos) {
-      if (list[i]) { out.push(list[i]); added = true }
-      if (out.length >= limit) break
-    }
-    if (!added) break
-  }
-  return out
-}
-
-export function pickNewest(skills, limit = 6) {
-  return [...skills]
-    .sort((a, b) => new Date(b.first_seen_at) - new Date(a.first_seen_at) || new Date(b.updated_at) - new Date(a.updated_at))
-    .slice(0, limit)
+/** Listado paginado con scroll infinito. Con búsqueda inteligente usa la Edge Function. */
+export function useSkillList(filters) {
+  const smart = filters.smart && (filters.q ?? "").trim().length >= 3
+  const list = useInfiniteQuery({
+    queryKey: ["skills", { ...filters, smart }],
+    queryFn: ({ pageParam = 0 }) =>
+      smart
+        ? smartSearch({ ...filters, limit: 48 })
+        : searchSkills({ ...filters, limit: PAGE_SIZE, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (smart || last.length < PAGE_SIZE ? undefined : pages.length * PAGE_SIZE),
+    placeholderData: keepPreviousData,
+    staleTime: MIN,
+  })
+  const total = useQuery({
+    queryKey: ["skills-count", { ...filters, smart }],
+    queryFn: () => countSkills(filters),
+    enabled: !smart,
+    placeholderData: keepPreviousData,
+    staleTime: MIN,
+  })
+  const items = useMemo(() => {
+    const seen = new Set()
+    return (list.data?.pages ?? []).flat().filter((s) => (seen.has(s.id) ? false : seen.add(s.id)))
+  }, [list.data])
+  return { ...list, items, total: smart ? items.length : total.data, smart }
 }

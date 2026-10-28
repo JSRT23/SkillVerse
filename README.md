@@ -1,8 +1,8 @@
 # SkillVerse
 
-Directorio independiente de **Agent Skills** (formato `SKILL.md`). Muestra qué hace cada skill, cuántas estrellas tiene su repositorio en GitHub y cómo instalarla. El catálogo se actualiza solo y los cambios llegan al sitio en tiempo real.
+Directorio independiente de **Agent Skills** (formato `SKILL.md`) con miles de skills descubiertas automáticamente en GitHub, **clasificadas con IA en 8 categorías y 37 subcategorías**, con búsqueda inteligente y actualización en tiempo real.
 
-Su mascota es **Nodo**, una araña-agente que teje la red de categorías y se viste distinto para cada una.
+Su mascota es **Ocho**, un pulpo con un tentáculo para cada categoría.
 
 ## Arrancar con Docker
 
@@ -10,9 +10,7 @@ Su mascota es **Nodo**, una araña-agente que teje la red de categorías y se vi
 docker compose up --build
 ```
 
-Abre http://localhost:8080. No hace falta configurar nada: las claves públicas de Supabase vienen por defecto.
-
-Para usar otro puerto: `PORT=3000 docker compose up --build`.
+Abre http://localhost:8080. No hace falta configurar nada: las claves públicas de Supabase vienen por defecto. Para otro puerto: `PORT=3000 docker compose up --build`.
 
 ## Desarrollo local
 
@@ -24,48 +22,61 @@ npm run dev
 
 ## Qué incluye
 
-- **Inicio**: telaraña interactiva de categorías, skills populares, recién llegadas, repos en tendencia y guía rápida de instalación.
-- **Explorar**: búsqueda instantánea, filtros por categoría, origen (oficial o comunidad) y skills sin scripts. Los filtros quedan en la URL.
-- **Ficha de cada skill**: se abre como modal y también tiene URL propia para compartir. Incluye comandos de instalación para tres casos, avisos de seguridad y ejemplos de uso.
-- **Buscador rápido**: `Ctrl + K` (o `/`) desde cualquier página.
-- **Tiempo real**: cuando el rastreador encuentra una skill nueva aparece un aviso y el catálogo se refresca solo.
-- **Conoce a Nodo**: la mascota con sus 11 accesorios y 4 estados de ánimo.
-- **Guía**: qué es una skill, cómo instalarla en cada agente, seguridad y preguntas frecuentes.
+- **Inicio**: Ocho en el centro con sus tentáculos hacia las 8 categorías (pasa el cursor por una y la mira, se pone su accesorio y su tentáculo se ilumina), cinta en vivo de skills nuevas, populares en bloque destacado, categorías con subcategorías, ranking de repositorios.
+- **Modo día y noche**: el contenido cambia de tema con una transición circular; el menú y el pie quedan siempre de noche. Recuerda tu elección y respeta la preferencia del sistema.
+- **Explorar**: barra lateral con categorías y subcategorías, filtros por origen (oficial, verificada, comunidad) y sin scripts, vista de tarjetas o lista, scroll infinito, filtros en la URL.
+- **Búsqueda inteligente**: entiende lo que quieres decir, incluso en español (“probar mi web en el navegador” encuentra skills de testing con navegador). Atajo `Ctrl + K`.
+- **Ficha de cada skill**: modal en dos columnas con instalación en tres modalidades, datos del repo, avisos de seguridad, ejemplos de uso y **skills parecidas** encontradas por significado.
+- **Categorías**: página por categoría con pestañas de subcategoría y conteos.
+- **Conoce a Ocho**: 8 accesorios, gorro de dormir y 4 estados de ánimo; los ojos siguen el cursor.
 
 ## Stack
 
 | Parte | Tecnología |
 |---|---|
-| Interfaz | React 19 + Vite (JavaScript) |
-| Estilos | Tailwind CSS 4 |
+| Interfaz | React 19 + Vite (JavaScript), React Router |
+| Estilos | Tailwind CSS 4, tema por variables CSS, View Transitions |
 | Animaciones | Motion |
-| Iconos | Lucide |
-| Datos | Supabase (Postgres, Realtime, Edge Functions, pg_cron) + TanStack Query |
-| Rutas | React Router |
+| Datos | Supabase (Postgres + pgvector, Realtime, Edge Functions, pg_cron) + TanStack Query |
+| IA | Modelo de embeddings `gte-small` integrado en Supabase |
+| Tipografía | Bricolage Grotesque, Geist y Geist Mono (servidas desde el sitio) |
 | Servidor | Nginx en Docker |
-
-Las fuentes (Unbounded, Manrope y JetBrains Mono) se sirven desde el propio sitio.
 
 ## Backend (Supabase)
 
-El backend ya está desplegado en el proyecto `yklvcnoiblejvmjnqqjy`:
+Proyecto `yklvcnoiblejvmjnqqjy`. Todo corre solo:
 
-- **`supabase/functions/crawl-skills`**: Edge Function que lee los repositorios de la tabla `sources`, encuentra cada `SKILL.md`, extrae nombre y descripción, la clasifica, guarda estrellas e historial y marca duplicados.
-- **pg_cron** la ejecuta cada 30 minutos.
-- **RLS**: el público solo puede leer el catálogo.
+| Tarea | Frecuencia | Qué hace |
+|---|---|---|
+| Descubrir | cada 2 min | Busca repos en GitHub por temas (`agent-skills`, `claude-skills`, …) en rangos de estrellas y los pone en cola |
+| Rastrear (`crawl-skills`) | cada 20 s | Lista los archivos del repo vía jsDelivr, lee cada `SKILL.md` y guarda las skills |
+| Clasificar (`classify-skills`) | cada 5 s | Calcula el embedding de cada skill y la asigna a la subcategoría más parecida |
+| Buscar (`search`) | a pedido | Búsqueda híbrida: texto + significado, con glosario español→inglés |
 
-### Agregar repositorios al rastreo
+Cada tarea solo se ejecuta si hay trabajo pendiente, para no gastar ejecuciones del plan gratuito.
 
-En el SQL Editor de Supabase:
+### Agregar repositorios o temas
 
 ```sql
-insert into public.sources (full_name, trust) values ('usuario/repo', 'community');
-select public.trigger_crawl(); -- opcional: rastrear ya
+-- un repo concreto
+insert into public.discovery_queries (query, priority) values ('repo:usuario/repo', 1);
+-- un tema nuevo de búsqueda en GitHub
+insert into public.discovery_queries (query, priority) values ('topic:mi-tema stars:>=1', 5);
 ```
 
-### Token de GitHub (recomendado)
+### Corregir una clasificación a mano
 
-Sin token, GitHub permite 60 consultas por hora. Crea un token de solo lectura y guárdalo en Supabase en **Edge Functions → Secrets** con el nombre `GITHUB_TOKEN`.
+```sql
+update public.skills
+set subcategory_id = (select id from public.subcategories where slug = 'e2e'),
+    category_id = (select id from public.categories where slug = 'testing'),
+    category_locked = true
+where slug = 'anthropics-webapp-testing';
+```
+
+### Token de GitHub (opcional)
+
+El sistema funciona sin token. Con uno (Supabase → Edge Functions → Secrets → `GITHUB_TOKEN`, solo lectura) descubre repositorios unas tres veces más rápido.
 
 ### Traer las migraciones como archivos
 
@@ -76,11 +87,7 @@ npx supabase migration fetch
 
 ## Skills incluidas para trabajar en este repo
 
-En `.claude/skills/` hay tres skills que usan los agentes compatibles al trabajar en este proyecto:
-
-- `frontend-design` (Anthropic, Apache 2.0): criterios de diseño de interfaces.
-- `webapp-testing` (Anthropic, Apache 2.0): pruebas del sitio con Playwright.
-- `supabase` (Supabase, MIT): buenas prácticas de Supabase.
+`.claude/skills/` trae `frontend-design` y `webapp-testing` (Anthropic, Apache 2.0) y `supabase` (Supabase, MIT).
 
 ## Aviso
 

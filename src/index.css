@@ -1,91 +1,182 @@
 @import "tailwindcss";
 
+/* El tema se aplica con data-theme en <html>. El nav y el footer usan .shell (siempre de noche). */
+@custom-variant day (&:where([data-theme="day"], [data-theme="day"] *):not(:where(.shell, .shell *)));
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-elev: var(--bg-elev);
+  --color-soft: var(--bg-soft);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--fg-muted);
+  --color-subtle: var(--fg-subtle);
+
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", system-ui, sans-serif;
+  --font-sans: "Geist Variable", "Geist", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
+}
+
 @theme {
-  /* Paleta: noche violeta con ámbar (núcleo de la mascota) y turquesa (en vivo) */
-  --color-ink: #15123a;
-  --color-ink-deep: #0f0d2b;
-  --color-dusk: #221e52;
-  --color-dusk-2: #2c2766;
-  --color-line: #3a3480;
-  --color-silk: #f3f0ff;
-  --color-haze: #a9a3d9;
-  --color-amber: #ffc447;
-  --color-amber-deep: #f2a516;
-  --color-lagoon: #38d6c4;
-  --color-violet: #7b6cf6;
-  --color-danger: #ff6b81;
+  --color-brand: #7c5cff;
+  --color-brand-deep: #5b3fe6;
+  --color-orchid: #e255c8;
+  --color-amber: #ffb224;
+  --color-amber-deep: #f29a00;
+  --color-teal: #1fc7b6;
+  --color-danger: #f43f5e;
+  --color-night: #0c0a20;
 
-  --font-display: "Unbounded Variable", "Unbounded", system-ui, sans-serif;
-  --font-sans: "Manrope Variable", "Manrope", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+}
 
-  --shadow-glow: 0 10px 40px -12px rgb(123 108 246 / 0.55);
-  --shadow-lift: 0 18px 50px -18px rgb(8 6 30 / 0.9), 0 2px 0 0 rgb(255 255 255 / 0.04) inset;
-  --shadow-amber: 0 10px 34px -10px rgb(255 196 71 / 0.6);
+/* ---------- Tokens por tema ---------- */
+:root,
+[data-theme="night"],
+.shell {
+  --bg: #0c0a20;
+  --bg-elev: #15123a;
+  --bg-soft: #1d1947;
+  --line: #2a2560;
+  --fg: #f3f1ff;
+  --fg-muted: #a7a2d0;
+  --fg-subtle: #77729f;
+  --shadow-rgb: 4 3 18;
+  --shadow-a: 0.55;
+  --glow: 124 92 255;
+  --grid: rgb(255 255 255 / 0.035);
+  color-scheme: dark;
+}
+
+[data-theme="day"] {
+  --bg: #f6f5fc;
+  --bg-elev: #ffffff;
+  --bg-soft: #efedf9;
+  --line: #e2def2;
+  --fg: #15122e;
+  --fg-muted: #57527a;
+  --fg-subtle: #8a85aa;
+  --shadow-rgb: 52 40 120;
+  --shadow-a: 0.12;
+  --glow: 124 92 255;
+  --grid: rgb(21 18 46 / 0.045);
+  color-scheme: light;
+}
+
+/* El shell siempre redefine los tokens de noche, aunque la página esté de día */
+[data-theme="day"] .shell {
+  --bg: #0c0a20;
+  --bg-elev: #15123a;
+  --bg-soft: #1d1947;
+  --line: #2a2560;
+  --fg: #f3f1ff;
+  --fg-muted: #a7a2d0;
+  --fg-subtle: #77729f;
+  --shadow-rgb: 4 3 18;
+  --shadow-a: 0.55;
+  color-scheme: dark;
 }
 
 @layer base {
   html {
-    color-scheme: dark;
     scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-ink text-silk font-sans antialiased;
-    background-image:
-      radial-gradient(1200px 600px at 85% -10%, rgb(123 108 246 / 0.18), transparent 60%),
-      radial-gradient(900px 500px at -10% 30%, rgb(56 214 196 / 0.07), transparent 60%);
-    background-attachment: fixed;
+    @apply bg-bg text-fg font-sans antialiased;
+    font-size: 15.5px;
     min-height: 100dvh;
+    font-feature-settings: "ss01", "cv11";
   }
-  h1, h2, h3 {
-    @apply font-display tracking-tight;
+  h1, h2, h3, h4 {
+    @apply font-display text-fg;
+    letter-spacing: -0.025em;
     text-wrap: balance;
   }
   p {
     text-wrap: pretty;
   }
   ::selection {
-    background: rgb(255 196 71 / 0.35);
+    background: rgb(124 92 255 / 0.3);
   }
   :focus-visible {
-    outline: 2px solid var(--color-amber);
+    outline: 2px solid var(--color-brand);
     outline-offset: 3px;
-    border-radius: 10px;
+    border-radius: 12px;
+  }
+  code, kbd, pre {
+    @apply font-mono;
   }
 }
 
+/* ---------- Utilidades del sistema ---------- */
 @utility container-page {
-  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  @apply mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8;
 }
-@utility panel {
-  @apply rounded-[18px] border border-line/70 bg-dusk/70 backdrop-blur-sm;
-  box-shadow: var(--shadow-lift);
+@utility card {
+  @apply rounded-[22px] border border-line bg-elev;
+  box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.03) inset, 0 12px 32px -18px rgb(var(--shadow-rgb) / var(--shadow-a));
 }
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors duration-200 cursor-pointer select-none;
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold whitespace-nowrap cursor-pointer select-none transition-[background-color,color,border-color,box-shadow,transform] duration-200 active:scale-[0.97];
 }
 @utility btn-primary {
-  @apply btn bg-amber text-ink-deep hover:bg-amber-deep;
-  box-shadow: var(--shadow-amber);
+  @apply btn bg-amber text-night hover:bg-amber-deep;
+  box-shadow: 0 8px 24px -10px rgb(255 178 36 / 0.7);
+}
+@utility btn-brand {
+  @apply btn text-white;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-orchid));
+  box-shadow: 0 10px 30px -12px rgb(124 92 255 / 0.8);
 }
 @utility btn-ghost {
-  @apply btn border border-line bg-dusk/60 text-silk hover:border-violet hover:bg-dusk-2;
+  @apply btn border border-line bg-elev text-fg hover:border-brand/60 hover:bg-soft;
+}
+@utility btn-icon {
+  @apply inline-grid h-10 w-10 shrink-0 place-items-center rounded-full border border-line bg-elev text-muted cursor-pointer transition-colors hover:border-brand/60 hover:text-fg active:scale-95;
 }
 @utility chip {
-  @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold;
+  @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap;
 }
 @utility section-title {
-  @apply font-display text-2xl font-semibold sm:text-3xl;
+  @apply font-display text-[1.9rem] font-bold leading-[1.08] sm:text-[2.4rem];
+  letter-spacing: -0.035em;
+}
+@utility text-gradient {
+  background: linear-gradient(100deg, var(--color-brand) 10%, var(--color-orchid) 60%, var(--color-amber));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility bg-grid {
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 44px 44px;
 }
 
-/* Scrollbar discreta */
+/* ---------- Transición de tema (View Transitions) ---------- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* ---------- Detalles ---------- */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-line) transparent;
+  scrollbar-color: var(--line) transparent;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
