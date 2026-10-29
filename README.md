@@ -60,7 +60,7 @@ Todo corre solo en tu proyecto de Supabase:
 | Rastrear (`crawl-skills`) | cada hora | Vuelve a leer los `SKILL.md` de los repos ya incluidos que tuvieron cambios |
 | Clasificar (`classify-skills`) | cada 5 min | Calcula el embedding de las skills nuevas o cambiadas y las asigna a su subcategoría |
 | Cachés del catálogo | cada hora | Recalcula conteos, populares, recién llegadas, estado y el índice del explorador (`private.refresh_catalog()`) |
-| Duplicados | una vez al día | Marca skills repetidas entre repositorios (`private.mark_duplicates_all()`) |
+| Duplicados | una vez al día | Oculta copias de la misma skill: para otros agentes (`.kiro/`, `.agents/`…), traducciones (`docs/ja-JP/`, `skills-zh/`), copias de prueba o ejemplo, y repetidas entre repositorios (`private.mark_duplicates_all()`) |
 | Buscar (`search`) | a pedido | Búsqueda híbrida: texto + significado, con glosario español→inglés |
 
 Cada tarea solo se ejecuta si hay trabajo pendiente.
