@@ -6,6 +6,8 @@ import { subscribeToCatalog } from "../lib/supabase"
  * Escucha las skills nuevas en vivo. Como pueden llegar cientos por minuto,
  * agrupa los avisos (uno cada pocos segundos) y refresca los datos con calma.
  */
+const LIVE = import.meta.env.VITE_LIVE_UPDATES === "on"
+
 export function useRealtime() {
   const queryClient = useQueryClient()
   const [toast, setToast] = useState(null)
@@ -15,6 +17,9 @@ export function useRealtime() {
   const refreshTimer = useRef(null)
 
   useEffect(() => {
+    // Los avisos en vivo abren una conexión de Realtime por visitante. En el plan gratuito de Supabase
+    // conviene dejarlos apagados; se activan con VITE_LIVE_UPDATES=on.
+    if (!LIVE) return
     const flush = () => {
       flushTimer.current = null
       const batch = buffer.current
