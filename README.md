@@ -56,14 +56,22 @@ Todo corre solo en tu proyecto de Supabase:
 
 | Tarea | Frecuencia | Qué hace |
 |---|---|---|
-| Descubrir | cada 20 min | Busca repos en GitHub por temas (`agent-skills`, `claude-skills`, …) en rangos de estrellas y los pone en cola |
-| Rastrear (`crawl-skills`) | cada 2 min | Lista los archivos del repo vía jsDelivr, lee cada `SKILL.md` y guarda las skills |
-| Clasificar (`classify-skills`) | cada 30 s | Calcula el embedding de cada skill y la asigna a la subcategoría más parecida |
-| Cachés del catálogo | cada 10 min | Recalcula conteos, populares, recién llegadas y estado (`private.refresh_catalog()`) |
-| Duplicados | cada 30 min | Marca skills repetidas entre repositorios (`private.mark_duplicates_all()`) |
+| Descubrir | cada 6 h | Busca repos en GitHub por temas y refresca estrellas y fechas de cambio de los que ya conoce |
+| Rastrear (`crawl-skills`) | cada hora | Vuelve a leer los `SKILL.md` de los repos ya incluidos que tuvieron cambios |
+| Clasificar (`classify-skills`) | cada 5 min | Calcula el embedding de las skills nuevas o cambiadas y las asigna a su subcategoría |
+| Cachés del catálogo | cada hora | Recalcula conteos, populares, recién llegadas, estado y el índice del explorador (`private.refresh_catalog()`) |
+| Duplicados | una vez al día | Marca skills repetidas entre repositorios (`private.mark_duplicates_all()`) |
 | Buscar (`search`) | a pedido | Búsqueda híbrida: texto + significado, con glosario español→inglés |
 
-Cada tarea solo se ejecuta si hay trabajo pendiente. El rastreo y el descubrimiento se detienen solos al llegar a unas 30.000 skills, para no pasar los límites de disco y CPU del plan gratuito de Supabase. Las visitas leen conteos y listados de portada desde cachés, así que no recorren la tabla de skills.
+Cada tarea solo se ejecuta si hay trabajo pendiente.
+
+### Modo mantenimiento (plan gratuito)
+
+El plan gratuito de Supabase no aguanta un rastreo continuo: el servidor se queda sin CPU ni disco y la API deja de responder. Por eso el catálogo está en **modo mantenimiento**: conserva las ~18.000 skills de los repositorios ya rastreados y solo los actualiza cuando cambian. Los repositorios descubiertos que aún no se rastrearon quedan en espera (`sources.status = 'pending'`).
+
+Para volver a crecer (por ejemplo, con un plan de pago), agrega `x.status = 'pending' or` al filtro de `public.claim_crawl_batch()` y de la tarea `skillverse-crawl`, y sube su frecuencia con `cron.alter_job`. Hay un tope de seguridad de ~30.000 skills en las tareas de rastreo y descubrimiento.
+
+Las visitas leen conteos, listados y estado desde cachés (`private.*`), así que no recorren la tabla de skills. Los avisos en vivo están apagados por defecto (`VITE_LIVE_UPDATES=on` para activarlos).
 
 ### Agregar repositorios o temas
 
